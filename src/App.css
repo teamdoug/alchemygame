@@ -1,38 +1,103 @@
-.App {
-  text-align: center;
+html,
+body {
+  background-color: #121212;
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+#verticalFlex {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  min-height: 100vh;
+  padding: 5px;
+  margin: 0px;
 }
 
-.App-link {
-  color: #61dafb;
+.header {
+  background-color: rgba(255,255,255, 0.08);
+  height: 25px;
+  margin: 20px 0px;
+  font-size: larger;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.header .button {
+  margin-right: 5px;
+}
+
+.header .button.selected {
+  background-color: #222;
+}
+
+.headerTabs .button {
+  background-color: #444;
+}
+
+.header .button:not(.disabled):not(.selected):hover {
+  background-color: #666;
+}
+
+.headerButtons {
+  text-align: right;
+}
+
+.headerValue {
+  font-size: x-large;
+  font-weight: bold;
+}
+
+.headerElement {
+  margin-right: 10px;
+  margin-bottom: 5px;
+  display: inline-block;
+}
+
+.panelHeader {
+  margin-bottom: 5px;
+  font-size: large;
+}
+
+#flex {
+  display: flex;
+  flex-direction: row;
+  height: calc(100% - 35px);
+  flex-grow: 1;
+}
+
+.panel {
+  background-color: rgba(255,255,255, 0.08);
+}
+
+#leftPanel {
+  flex-basis: 40%;
+  margin-right: 10px;
+  padding: 5px;
+  min-height: calc(100vh - 117px);
+  max-height: calc(100vh - 117px);
+  max-width: 300px;
+  position: relative;
+  overflow: scroll;
+}
+
+
+@media only screen and (min-height: 500px) {
+  #log {
+    position: absolute;
+    bottom: 0;
+    height: 150px;
   }
-  to {
-    transform: rotate(360deg);
+  #leftPanel {
+    overflow: hidden;
   }
+}
+
+#mainPanel {
+  flex-grow: 5;
+  flex-basis: 60%;
+  padding: 0px;
+  min-height: calc(100vh - 107px);
+  max-height: calc(100vh - 107px);
 }
