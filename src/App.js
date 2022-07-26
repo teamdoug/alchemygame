@@ -115,7 +115,7 @@ class App extends React.Component {
       let planPath = new Path2D();
       let donePaths = [];
       if (component.type === 'circle') {
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 4;
         planPath.arc(centerX, centerY, component.radiusPercent * radius / 100, 0, 2 * pi);
         for (const arc of component.progress.arcs) {
           let donePath = new Path2D();
@@ -390,7 +390,7 @@ export function mergeArcs(arcs, index) {
 
 function circleContains(radius, x, y) {
   let sq = x * x + y * y;
-  let slop = Math.min(10, radius / 10);
+  let slop = Math.min(20, radius / 10);
   return sq >= (radius - slop) ** 2 && sq <= (radius + slop) ** 2;
 }
 
