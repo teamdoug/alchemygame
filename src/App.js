@@ -141,15 +141,15 @@ class App extends React.Component {
       this.mouseClicked = false;
       return;
     }
-    if ((e.buttons & 1) === 1) {
+    if ((e.buttons & 1) === 1 || true) {
       var rect = this.canvas.current.getBoundingClientRect();
-      if (this.mouseClicked) {
+      //if (this.mouseClicked) {
         this.prevX = this.mouseX;
         this.prevY = this.mouseY;
-      }
+      //}
       this.mouseX = e.clientX - rect.left;
       this.mouseY = e.clientY - rect.top;
-      if (!this.mouseClicked) {
+      if (!this.mouseClicked && false) {
         this.prevX = this.mouseX;
         this.prevY = this.mouseY;
       }
