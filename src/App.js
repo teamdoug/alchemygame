@@ -231,34 +231,43 @@ class App extends React.Component {
               let curArcEnd = (curNormEnd - seg.start) / diff;
               let prevRelX = this.prevX - seg.center[0];
               let prevRelY = this.prevY - seg.center[1];
-              if (circleContains(seg.radius, prevRelX, prevRelY)) {
-                let prevNormalized = radiansToNormalized(Math.atan2(prevRelY, prevRelX));
-                let [prevNormStart, prevNormEnd] = normAndOrder(circle, prevNormalized - onSegSlop,
-                  prevNormalized + onSegSlop);
+              let prevNormalized = radiansToNormalized(Math.atan2(prevRelY, prevRelX));
+              let [prevNormStart, prevNormEnd] = normAndOrder(circle, prevNormalized - onSegSlop,
+                prevNormalized + onSegSlop);
+              if (circleContains(seg.radius, prevRelX, prevRelY) && (
+                seg.end >= prevNormEnd && prevNormEnd >= seg.start) ||
+                (seg.start <= prevNormStart && prevNormStart <= seg.end)) {
                 prevNormEnd = Math.min(seg.end, prevNormEnd);
                 prevNormStart = Math.max(seg.start, prevNormStart);
                 let prevArcStart = (prevNormStart - seg.start) / diff;
                 let prevArcEnd = (prevNormEnd - seg.start) / diff;
                 let [start, end] = normAndOrder(circle, Math.min(prevArcStart, curArcStart),
                   Math.max(prevArcEnd, curArcEnd));
-                if (end < start) {
-                  console.log('backwards', start, end)
-                }
-                if (end - start > 0.25) {
-                  console.log(start, end);
-                }
+
                 if (end > .75 && start < .25) {
-                  console.log('big circle', start, end)
+                  //console.log('straddle', circle, curArcStart, curArcEnd, curNormalized, prevArcStart, prevArcEnd, prevNormalized)
                   addArc(progs, [0, start]);
                   addArc(progs, [end, 1]);
                 } else {
+                  if (end - start > 0.25) {
+                    //console.log('big two', start, end);
+                  }
+                  //console.log('twopoint')
                   addArc(progs, [start, end]);
                 }
               } else {
-                if (curArcEnd - curArcStart > 0.25) {
-                  console.log('big sicnle', curArcStart, curArcEnd);
+
+                if (curArcEnd > .75 && curArcStart < .25) {
+                  //console.log('single straddle')
+                  addArc(progs, [0, curArcStart]);
+                  addArc(progs, [curArcEnd, 1]);
+                } else {
+                  if (curArcEnd - curArcStart > 0.25) {
+                    //console.log('big single', circle, curArcStart, curArcEnd, curNormalized);
+                  }
+                  //console.log('single')
+                  addArc(progs, [curArcStart, curArcEnd]);
                 }
-                addArc(progs, [curArcStart, curArcEnd]);
               }
 
             }
@@ -449,7 +458,7 @@ function normalizedToRadians(normalized) {
 // Force into [0, 1]
 function norm(x) { return ((x % 1) + 1) % 1 }
 
-function clamp(x) { return Math.min(1, Math.max(0, x))}
+function clamp(x) { return Math.min(1, Math.max(0, x)) }
 
 function normAndOrder(circle, x, y) {
   let n = norm;
