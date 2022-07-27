@@ -10,55 +10,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 5px;
+  padding: 0px 5px;
   margin: 0px;
 }
 
-.header {
-  background-color: rgba(255,255,255, 0.08);
-  height: 25px;
-  margin: 20px 0px;
-  font-size: larger;
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.header .button {
-  margin-right: 5px;
-}
-
-.header .button.selected {
-  background-color: #222;
-}
-
-.headerTabs .button {
-  background-color: #444;
-}
-
-.header .button:not(.disabled):not(.selected):hover {
-  background-color: #666;
-}
-
-.headerButtons {
-  text-align: right;
-}
-
-.headerValue {
-  font-size: x-large;
-  font-weight: bold;
-}
-
-.headerElement {
-  margin-right: 10px;
-  margin-bottom: 5px;
-  display: inline-block;
-}
-
-.panelHeader {
-  margin-bottom: 5px;
-  font-size: large;
-}
 
 #flex {
   display: flex;
@@ -75,8 +30,8 @@ body {
   flex-basis: 40%;
   margin-right: 10px;
   padding: 5px;
-  min-height: calc(100vh - 117px);
-  max-height: calc(100vh - 117px);
+  min-height: calc(100vh);
+  max-height: calc(100vh);
   max-width: 300px;
   position: relative;
   overflow: scroll;
@@ -98,6 +53,6 @@ body {
   flex-grow: 5;
   flex-basis: 60%;
   padding: 0px;
-  min-height: calc(100vh - 107px);
-  max-height: calc(100vh - 107px);
+  min-height: calc(100vh);
+  max-height: calc(100vh);
 }

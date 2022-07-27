@@ -2,8 +2,8 @@ import './App.css';
 import React from "react";
 
 const debug = true;
-const maxWidth = 2000;
-const maxHeight = 1500;
+const maxWidth = 4000;
+const maxHeight = 4500;
 const pi = Math.PI;
 const sin = Math.sin;
 const cos = Math.cos;
@@ -15,16 +15,22 @@ const doneColor = '#FFF';
 class App extends React.Component {
   constructor(props) {
     super(props);
+    if (debug) {
+      window.game = this;
+    }
     this.lastFrame = window.performance.now();
     this.lastSave = window.performance.now();
     this.canvas = React.createRef();
-    this.width = 0;
+    this.width = 800;
     const storedState = localStorage.getItem("heartosisIGJ5Save");
     if (storedState) {
       this.state = JSON.parse(storedState);
     } else {
       this.state = this.getInitState();
     }
+    this.height = 400;
+    this.minAxis = 400;
+    this.baseLineWidth = .01;
     this.resetLocalVars();
   }
 
@@ -64,7 +70,6 @@ class App extends React.Component {
   render() {
     let s = this.state;
 
-
     const canvas = this.canvas.current;
 
     if (canvas !== null) {
@@ -75,13 +80,6 @@ class App extends React.Component {
 
     return (
       <div id="verticalFlex">
-        <div className="header">
-          <div className="headerTabs">
-          </div>
-          <div className="headerButtons">
-
-          </div>
-        </div>
         <div id="flex">
           <div className="panel" id="leftPanel">
           </div>
@@ -110,16 +108,19 @@ class App extends React.Component {
     const centerY = canvas.height / 2;
     const radius = Math.min(centerX, centerY);
     const ctx = this.canvas.current.getContext('2d');
+    ctx.resetTransform();
     ctx.clearRect(0, 0, w, h);
+    ctx.setTransform(this.transform);
+
     tmCircle.components.forEach((component, index) => {
       let planPath = new Path2D();
       let donePaths = [];
       if (component.type === 'circle') {
-        ctx.lineWidth = 4;
-        planPath.arc(centerX, centerY, component.radiusPercent * radius / 100, 0, 2 * pi);
+        ctx.lineWidth = this.baseLineWidth;
+        planPath.arc(0, 0, component.radiusPercent / 100, 0, 2 * pi);
         for (const arc of component.progress.arcs) {
           let donePath = new Path2D();
-          donePath.arc(centerX, centerY, component.radiusPercent * radius / 100, percentToRadians(arc[0]), percentToRadians(arc[1]));
+          donePath.arc(0, 0, component.radiusPercent / 100, percentToRadians(arc[0]), percentToRadians(arc[1]), true);
           donePaths.push(donePath);
         }
       }
@@ -133,7 +134,61 @@ class App extends React.Component {
     });
   }
 
+
+  update = (delta, debugFrame) => {
+    let s = this.state;
+    let relDelta = delta / 1000;
+    let updates = {};
+    for (const [index, component] of s.tmCircle.components.entries()) {
+      if (component.progress.done) {
+        continue;
+      }
+      if (component.type === 'circle') {
+        let arcs = component.progress.arcs;
+        if (this.mouseClicked && circleContains(component.radiusPercent / 100, this.mouseX, this.mouseY)) {
+          let curRadians = Math.atan2(this.mouseY, this.mouseX);
+          let curPercent = radiansToPercent(curRadians);
+          if (!this.prevInComponent[index]) {
+            // (change based on size??)
+            addArc(arcs, [curPercent, curPercent + .25]);
+          } else {
+            let prevPercent = radiansToPercent(Math.atan2(this.prevY, this.prevX));
+            let start = Math.min(prevPercent, curPercent);
+            let end = Math.max(prevPercent, curPercent);
+            if (end > 75 && start < 25) {
+              addArc(arcs, [0, start]);
+              addArc(arcs, [end, 100]);
+            } else {
+              addArc(arcs, [start, end]);
+            }
+          }
+          this.prevInComponent[index] = true;
+        } else {
+          this.prevInComponent[index] = false;
+        }
+
+        arcs[0][1] += relDelta * 2;
+        mergeArcs(arcs, 0);
+        if (arcs[0][1] >= 100) {
+          arcs[0][1] = 100;
+          component.progress.arcs = [arcs[0]];
+          component.progress.done = true;
+        }
+      }
+      updates.tmCircle = s.tmCircle;
+      break;
+    }
+
+    let forceResize = false;
+    let callback = forceResize ? this.resizeCanvas : () => { };
+    this.setState(updates, callback);
+
+  }
+
+
+  
   mouseMove = (e) => {
+
     if (!this.canvas.current) {
       return;
     }
@@ -147,8 +202,9 @@ class App extends React.Component {
         this.prevX = this.mouseX;
         this.prevY = this.mouseY;
       //}
-      this.mouseX = e.clientX - rect.left;
-      this.mouseY = e.clientY - rect.top;
+      let point = this.inverseTransform.transformPoint(new DOMPoint(e.clientX - rect.left, e.clientY - rect.top));
+      this.mouseX = point.x;
+      this.mouseY = point.y;
       if (!this.mouseClicked && false) {
         this.prevX = this.mouseX;
         this.prevY = this.mouseY;
@@ -163,7 +219,7 @@ class App extends React.Component {
     if (!this.canvas.current) {
       return;
     }
-
+    // TODO fix for touch/multitouch (hm)
     if (e.type === "touchcancel" || e.type === "touchend") {
       this.mouseClicked = false;
       return;
@@ -174,10 +230,10 @@ class App extends React.Component {
         this.prevX = this.mouseX;
         this.prevY = this.mouseY;
       }
-      this.mouseX =
-        e.touches[0].clientX - rect.left;
-      this.mouseY =
-        e.touches[0].clientY - rect.top;
+      let point = new DOMPoint(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+      point = this.inverseTransform.transformPoint(point);
+      this.mouseX = point.x;
+      this.mouseY = point.y;
       if (!this.mouseClicked) {
         this.prevX = this.mouseX;
         this.prevY = this.mouseY;
@@ -205,8 +261,15 @@ class App extends React.Component {
         this.canvas.current.height = this.canvas.current.offsetHeight;
       }
       this.width = this.canvas.current.width;
+      this.height = this.canvas.current.height;
+      this.fullMinAxis = Math.min(this.width, this.height);
+      this.minAxis = this.fullMinAxis * 0.9;
+      let context = this.canvas.current.getContext('2d');
+      this.transform = new DOMMatrix().translate(this.width/2, this.height/2).scale(this.minAxis/2, -this.minAxis/2);
+      this.inverseTransform = this.transform.inverse();
+      context.setTransform(this.transform);
     }
-
+    
     if (this.state.paused) {
       this.forceUpdate();
     }
@@ -262,60 +325,6 @@ class App extends React.Component {
     this.renderID = window.requestAnimationFrame(this.gameLoop);
   };
 
-  update = (delta, debugFrame) => {
-    let s = this.state;
-    let relDelta = delta / 1000;
-    let updates = {};
-    const centerX = this.canvas.current.width / 2;
-    const centerY = this.canvas.current.height / 2;
-    const radius = Math.min(centerX, centerY);
-    const ctx = this.canvas.current.getContext('2d');
-    for (const [index, component] of s.tmCircle.components.entries()) {
-      if (component.progress.done) {
-        continue;
-      }
-      if (component.type === 'circle') {
-        let arcs = component.progress.arcs;
-        if (this.mouseClicked && circleContains(component.radiusPercent * radius / 100, this.mouseX - centerX, this.mouseY - centerY)) {
-          let curRadians = Math.atan2(this.mouseY - centerY, this.mouseX - centerX);
-          let curPercent = radiansToPercent(curRadians);
-          if (!this.prevInComponent[index]) {
-            // (change based on size??)
-            addArc(arcs, [curPercent, curPercent + .25]);
-          } else {
-            let prevPercent = radiansToPercent(Math.atan2(this.prevY - centerY, this.prevX - centerX));
-            let start = Math.min(prevPercent, curPercent);
-            let end = Math.max(prevPercent, curPercent);
-            if (end > 75 && start < 25) {
-              addArc(arcs, [0, start]);
-              addArc(arcs, [end, 100]);
-            } else {
-              addArc(arcs, [start, end]);
-            }
-          }
-          this.prevInComponent[index] = true;
-        } else {
-          this.prevInComponent[index] = false;
-        }
-
-        arcs[0][1] += relDelta * 2;
-        mergeArcs(arcs, 0);
-        if (arcs[0][1] >= 100) {
-          arcs[0][1] = 100;
-          component.progress.arcs = [arcs[0]];
-          component.progress.done = true;
-        }
-      }
-      updates.tmCircle = s.tmCircle;
-      break;
-    }
-
-    let forceResize = false;
-    let callback = forceResize ? this.resizeCanvas : () => { };
-    this.setState(updates, callback);
-
-  }
-
 
   togglePause = () => {
     this.setState({ paused: !this.state.paused });
@@ -331,14 +340,14 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-// Turn a percent of progress (starting at x=0,y=-1) into number of radians (starting at x=1,y=0)
+// Turn a percent of progress (starting at x=0,y=1) into number of radians (starting at x=1,y=0)
 function percentToRadians(percent) {
-  return pi * percent / 50 - pi / 2;
+  return - pi * percent / 50 + pi / 2;
 }
 
 // Reverse previous function
 function radiansToPercent(radians) {
-  let percent = (radians + pi / 2) * 50 / pi;
+  let percent = (radians - pi / 2) * -50 / pi;
   return Math.round(4 * (((percent % 100) + 100) % 100)) / 4;
 }
 
@@ -390,7 +399,7 @@ export function mergeArcs(arcs, index) {
 
 function circleContains(radius, x, y) {
   let sq = x * x + y * y;
-  let slop = Math.min(20, radius / 10);
+  let slop = Math.min(.05, radius / 20);
   return sq >= (radius - slop) ** 2 && sq <= (radius + slop) ** 2;
 }
 
