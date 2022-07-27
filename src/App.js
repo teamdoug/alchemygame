@@ -45,12 +45,63 @@ class App extends React.Component {
   getInitState = () => {
     let tmCircle = {
       components: [{
-        type: 'circle',
-        radius: .8,
-        progress: {
-          arcs: [[0, 0]],
+        type: 'container',
+        arity: 0,
+        segments: [{
+          type: 'arc',
           done: false,
-        }
+          center: [0, 0],
+          radius: 1,
+          start: 0,
+          end: 1,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'arc',
+          done: false,
+          center: [0, 0],
+          radius: 2 / 3,
+          start: 0,
+          end: .5,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'arc',
+          done: false,
+          center: [0, 0],
+          radius: 1 / 3,
+          start: .5,
+          end: 1,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'arc',
+          done: false,
+          center: [0, 0],
+          radius: 3 / 4,
+          start: .75,
+          end: 1,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'arc',
+          done: false,
+          center: [0, 0],
+          radius: 3 / 4,
+          start: 0,
+          end: .25,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'arc',
+          done: false,
+          center: [0, 0],
+          radius: 2 / 4,
+          start: .25,
+          end: .75,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }],
       }],
     };
     let state = {
@@ -112,25 +163,40 @@ class App extends React.Component {
     ctx.clearRect(0, 0, w, h);
     ctx.setTransform(this.transform);
 
-    tmCircle.components.forEach((component, index) => {
-      let planPath = new Path2D();
+    tmCircle.components.forEach((comp, index) => {
+      let planPaths = [];
       let donePaths = [];
-      if (component.type === 'circle') {
-        ctx.lineWidth = this.baseLineWidth;
-        planPath.arc(0, 0, component.radius, 0, 2 * pi);
-        for (const arc of component.progress.arcs) {
-          let donePath = new Path2D();
-          donePath.arc(0, 0, component.radius, normalizedToRadians(arc[0]), normalizedToRadians(arc[1]), true);
-          donePaths.push(donePath);
+      for (const seg of comp.segments) {
+        ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
+        if (seg.type === 'arc') {
+          if (!seg.done) {
+            let planPath = new Path2D();
+            planPath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(seg.start), normalizedToRadians(seg.end), true);
+            planPaths.push(planPath);
+          }
+          for (const [s, e] of seg.progress) {
+            let donePath = new Path2D();
+            let diff = seg.end - seg.start;
+            let arcStart = diff * s + seg.start;
+            let arcEnd = diff * e + seg.start;
+            let normEnd = normalizedToRadians(arcEnd);
+            // Fudge so that there's not a discontinuity at the top of circles.
+            if (seg.progress[0][0] === 0 && e === 1) {
+              normEnd -= .001;
+            }
+            donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
+            donePaths.push(donePath);
+          }
+        }
+        ctx.strokeStyle = progressColor;
+        for (const planPath of planPaths) {
+          ctx.stroke(planPath);
+        }
+        ctx.strokeStyle = doneColor;
+        for (const donePath of donePaths) {
+          ctx.stroke(donePath);
         }
       }
-      ctx.strokeStyle = progressColor;
-      ctx.stroke(planPath);
-      ctx.strokeStyle = doneColor;
-      for (const donePath of donePaths) {
-        ctx.stroke(donePath);
-      }
-
     });
   }
 
@@ -140,42 +206,74 @@ class App extends React.Component {
     let relDelta = delta / 1000;
     let updates = {};
     for (const [index, component] of s.tmCircle.components.entries()) {
-      if (component.progress.done) {
-        continue;
-      }
-      if (component.type === 'circle') {
-        let arcs = component.progress.arcs;
-        if (this.mouseClicked && circleContains(component.radius, this.mouseX, this.mouseY)) {
-          let curRadians = Math.atan2(this.mouseY, this.mouseX);
-          let curNormalized = radiansToNormalized(curRadians);
-          if (!this.prevInComponent[index]) {
-            // (change based on size??)
-            addArc(arcs, [curNormalized - .0025, curNormalized + .0025]);
-          } else {
-            let prevNormalized = radiansToNormalized(Math.atan2(this.prevY, this.prevX));
-            let start = (Math.min(prevNormalized - .0025, curNormalized - .0025) + 1) % 1;
-            let end = (Math.max(prevNormalized + .0025, curNormalized + .0025) + 1) % 1;
-            if (start > end) {
-              [start, end] = [end, start];
-            }
-            if (end > .75 && start < .25) {
-              addArc(arcs, [0, start]);
-              addArc(arcs, [end, 1]);
-            } else {
-              addArc(arcs, [start, end]);
-            }
-          }
-          this.prevInComponent[index] = true;
-        } else {
-          this.prevInComponent[index] = false;
+      for (const seg of component.segments) {
+        if (seg.done) {
+          continue;
         }
+        if (seg.type === 'arc') {
+          let progs = seg.progress;
+          let relX = this.mouseX - seg.center[0];
+          let relY = this.mouseY - seg.center[1];
+          let circle = (seg.start === 0) && (seg.end === 1)
 
-        arcs[0][1] += relDelta / 50;
-        mergeArcs(arcs, 0);
-        if (arcs[0][1] >= 1) {
-          arcs[0][1] = 1;
-          component.progress.arcs = [arcs[0]];
-          component.progress.done = true;
+          if (this.mouseClicked && circleContains(seg.radius, relX, relY)) {
+            let curRadians = Math.atan2(relY, relX);
+            let curNormalized = radiansToNormalized(curRadians);
+            let onSegSlop = .0025;
+            let [curNormStart, curNormEnd] = normAndOrder(circle, curNormalized - onSegSlop,
+              curNormalized + onSegSlop);
+            if ((seg.end >= curNormEnd && curNormEnd >= seg.start) ||
+              (seg.start <= curNormStart && curNormStart <= seg.end)) {
+              curNormEnd = Math.min(seg.end, curNormEnd);
+              curNormStart = Math.max(seg.start, curNormStart);
+              let diff = seg.end - seg.start;
+              let curArcStart = (curNormStart - seg.start) / diff;
+              let curArcEnd = (curNormEnd - seg.start) / diff;
+              let prevRelX = this.prevX - seg.center[0];
+              let prevRelY = this.prevY - seg.center[1];
+              if (circleContains(seg.radius, prevRelX, prevRelY)) {
+                let prevNormalized = radiansToNormalized(Math.atan2(prevRelY, prevRelX));
+                let [prevNormStart, prevNormEnd] = normAndOrder(circle, prevNormalized - onSegSlop,
+                  prevNormalized + onSegSlop);
+                prevNormEnd = Math.min(seg.end, prevNormEnd);
+                prevNormStart = Math.max(seg.start, prevNormStart);
+                let prevArcStart = (prevNormStart - seg.start) / diff;
+                let prevArcEnd = (prevNormEnd - seg.start) / diff;
+                let [start, end] = normAndOrder(circle, Math.min(prevArcStart, curArcStart),
+                  Math.max(prevArcEnd, curArcEnd));
+                if (end < start) {
+                  console.log('backwards', start, end)
+                }
+                if (end - start > 0.25) {
+                  console.log(start, end);
+                }
+                if (end > .75 && start < .25) {
+                  console.log('big circle', start, end)
+                  addArc(progs, [0, start]);
+                  addArc(progs, [end, 1]);
+                } else {
+                  addArc(progs, [start, end]);
+                }
+              } else {
+                if (curArcEnd - curArcStart > 0.25) {
+                  console.log('big sicnle', curArcStart, curArcEnd);
+                }
+                addArc(progs, [curArcStart, curArcEnd]);
+              }
+
+            }
+            //this.prevInComponent[index] = true;
+          } else {
+            //this.prevInComponent[index] = false;
+          }
+
+          progs[0][1] += relDelta / 50;
+          mergeArcs(progs, 0);
+          if (progs[0][1] >= 1) {
+            progs[0][1] = 1;
+            seg.progress = [progs[0]];
+            seg.done = true;
+          }
         }
       }
       updates.tmCircle = s.tmCircle;
@@ -189,7 +287,7 @@ class App extends React.Component {
   }
 
 
-  
+
   mouseMove = (e) => {
 
     if (!this.canvas.current) {
@@ -202,8 +300,8 @@ class App extends React.Component {
     if ((e.buttons & 1) === 1 || true) {
       var rect = this.canvas.current.getBoundingClientRect();
       //if (this.mouseClicked) {
-        this.prevX = this.mouseX;
-        this.prevY = this.mouseY;
+      this.prevX = this.mouseX;
+      this.prevY = this.mouseY;
       //}
       let point = this.inverseTransform.transformPoint(new DOMPoint(e.clientX - rect.left, e.clientY - rect.top));
       this.mouseX = point.x;
@@ -268,11 +366,11 @@ class App extends React.Component {
       this.fullMinAxis = Math.min(this.width, this.height);
       this.minAxis = this.fullMinAxis * 0.9;
       let context = this.canvas.current.getContext('2d');
-      this.transform = new DOMMatrix().translate(this.width/2, this.height/2).scale(this.minAxis/2, -this.minAxis/2);
+      this.transform = new DOMMatrix().translate(this.width / 2, this.height / 2).scale(this.minAxis / 2, -this.minAxis / 2);
       this.inverseTransform = this.transform.inverse();
       context.setTransform(this.transform);
     }
-    
+
     if (this.state.paused) {
       this.forceUpdate();
     }
@@ -346,6 +444,20 @@ function getRandomInt(max) {
 // Turn 0-1 (starting at x=0,y=1) into number of radians (starting at x=1,y=0)
 function normalizedToRadians(normalized) {
   return - pi * normalized * 2 + pi / 2;
+}
+
+// Force into [0, 1]
+function norm(x) { return ((x % 1) + 1) % 1 }
+
+function clamp(x) { return Math.min(1, Math.max(0, x))}
+
+function normAndOrder(circle, x, y) {
+  let n = norm;
+  if (!circle) {
+    n = clamp;
+  }
+  let [nx, ny] = [n(x), n(y)];
+  return [Math.min(nx, ny), Math.max(nx, ny)];
 }
 
 // Reverse previous function
