@@ -46,7 +46,7 @@ class App extends React.Component {
     let tmCircle = {
       components: [{
         type: 'circle',
-        radiusPercent: 80,
+        radius: .8,
         progress: {
           arcs: [[0, 0]],
           done: false,
@@ -117,10 +117,10 @@ class App extends React.Component {
       let donePaths = [];
       if (component.type === 'circle') {
         ctx.lineWidth = this.baseLineWidth;
-        planPath.arc(0, 0, component.radiusPercent / 100, 0, 2 * pi);
+        planPath.arc(0, 0, component.radius, 0, 2 * pi);
         for (const arc of component.progress.arcs) {
           let donePath = new Path2D();
-          donePath.arc(0, 0, component.radiusPercent / 100, percentToRadians(arc[0]), percentToRadians(arc[1]), true);
+          donePath.arc(0, 0, component.radius, normalizedToRadians(arc[0]), normalizedToRadians(arc[1]), true);
           donePaths.push(donePath);
         }
       }
@@ -145,19 +145,22 @@ class App extends React.Component {
       }
       if (component.type === 'circle') {
         let arcs = component.progress.arcs;
-        if (this.mouseClicked && circleContains(component.radiusPercent / 100, this.mouseX, this.mouseY)) {
+        if (this.mouseClicked && circleContains(component.radius, this.mouseX, this.mouseY)) {
           let curRadians = Math.atan2(this.mouseY, this.mouseX);
-          let curPercent = radiansToPercent(curRadians);
+          let curNormalized = radiansToNormalized(curRadians);
           if (!this.prevInComponent[index]) {
             // (change based on size??)
-            addArc(arcs, [curPercent, curPercent + .25]);
+            addArc(arcs, [curNormalized - .0025, curNormalized + .0025]);
           } else {
-            let prevPercent = radiansToPercent(Math.atan2(this.prevY, this.prevX));
-            let start = Math.min(prevPercent, curPercent);
-            let end = Math.max(prevPercent, curPercent);
-            if (end > 75 && start < 25) {
+            let prevNormalized = radiansToNormalized(Math.atan2(this.prevY, this.prevX));
+            let start = (Math.min(prevNormalized - .0025, curNormalized - .0025) + 1) % 1;
+            let end = (Math.max(prevNormalized + .0025, curNormalized + .0025) + 1) % 1;
+            if (start > end) {
+              [start, end] = [end, start];
+            }
+            if (end > .75 && start < .25) {
               addArc(arcs, [0, start]);
-              addArc(arcs, [end, 100]);
+              addArc(arcs, [end, 1]);
             } else {
               addArc(arcs, [start, end]);
             }
@@ -167,10 +170,10 @@ class App extends React.Component {
           this.prevInComponent[index] = false;
         }
 
-        arcs[0][1] += relDelta * 2;
+        arcs[0][1] += relDelta / 50;
         mergeArcs(arcs, 0);
-        if (arcs[0][1] >= 100) {
-          arcs[0][1] = 100;
+        if (arcs[0][1] >= 1) {
+          arcs[0][1] = 1;
           component.progress.arcs = [arcs[0]];
           component.progress.done = true;
         }
@@ -340,15 +343,15 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-// Turn a percent of progress (starting at x=0,y=1) into number of radians (starting at x=1,y=0)
-function percentToRadians(percent) {
-  return - pi * percent / 50 + pi / 2;
+// Turn 0-1 (starting at x=0,y=1) into number of radians (starting at x=1,y=0)
+function normalizedToRadians(normalized) {
+  return - pi * normalized * 2 + pi / 2;
 }
 
 // Reverse previous function
-function radiansToPercent(radians) {
-  let percent = (radians - pi / 2) * -50 / pi;
-  return Math.round(4 * (((percent % 100) + 100) % 100)) / 4;
+function radiansToNormalized(radians) {
+  let normalized = (radians - pi / 2) / -2 / pi;
+  return ((normalized % 1) + 1) % 1;
 }
 
 export function addArc(arcs, newArc) {
