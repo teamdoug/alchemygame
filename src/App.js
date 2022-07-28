@@ -101,6 +101,30 @@ class App extends React.Component {
           end: .75,
           lineWidth: 1,
           progress: [[0, 0]],
+        }, {
+          type: 'line',
+          done: false,
+          start: [0, 0],
+          end: [0.5, 0],
+          lenSq: 0.5 ** 2,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'line',
+          done: false,
+          start: [0, 0],
+          end: [0, 2 / 3],
+          lenSq: (2 / 3) ** 2,
+          lineWidth: 1,
+          progress: [[0, 0]],
+        }, {
+          type: 'line',
+          done: false,
+          start: [0, 1],
+          end: [1, 0],
+          lenSq: 1 + 1,
+          lineWidth: 1,
+          progress: [[0, 0]],
         }],
       }],
     };
@@ -162,6 +186,7 @@ class App extends React.Component {
     ctx.resetTransform();
     ctx.clearRect(0, 0, w, h);
     ctx.setTransform(this.transform);
+    ctx.lineCap = "round";
 
     tmCircle.components.forEach((comp, index) => {
       let planPaths = [];
@@ -187,6 +212,23 @@ class App extends React.Component {
             donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
             donePaths.push(donePath);
           }
+        } else if (seg.type === 'line') {
+          if (!seg.done) {
+            let planPath = new Path2D();
+            planPath.moveTo(seg.start[0], seg.start[1]);
+            planPath.lineTo(seg.end[0], seg.end[1]);
+            planPaths.push(planPath);
+          }
+          for (const [s, e] of seg.progress) {
+            let donePath = new Path2D();
+            let diffX = seg.end[0] - seg.start[0];
+            let diffY = seg.end[1] - seg.start[1];
+            let arcStart = [diffX * s + seg.start[0], diffY * s + seg.start[1]];
+            let arcEnd = [diffX * e + seg.start[0], diffY * e + seg.start[1]];
+            donePath.moveTo(arcStart[0], arcStart[1]);
+            donePath.lineTo(arcEnd[0], arcEnd[1]);
+            donePaths.push(donePath);
+          }
         }
         ctx.strokeStyle = progressColor;
         for (const planPath of planPaths) {
@@ -210,8 +252,10 @@ class App extends React.Component {
         if (seg.done) {
           continue;
         }
+        let progs = seg.progress;
+        let onSegSlop = .001;
+
         if (seg.type === 'arc') {
-          let progs = seg.progress;
           let relX = this.mouseX - seg.center[0];
           let relY = this.mouseY - seg.center[1];
           let circle = (seg.start === 0) && (seg.end === 1)
@@ -219,7 +263,6 @@ class App extends React.Component {
           if (this.mouseClicked && circleContains(seg.radius, relX, relY)) {
             let curRadians = Math.atan2(relY, relX);
             let curNormalized = radiansToNormalized(curRadians);
-            let onSegSlop = .0025;
             let [curNormStart, curNormEnd] = normAndOrder(circle, curNormalized - onSegSlop,
               curNormalized + onSegSlop);
             if ((seg.end >= curNormEnd && curNormEnd >= seg.start) ||
@@ -234,9 +277,9 @@ class App extends React.Component {
               let prevNormalized = radiansToNormalized(Math.atan2(prevRelY, prevRelX));
               let [prevNormStart, prevNormEnd] = normAndOrder(circle, prevNormalized - onSegSlop,
                 prevNormalized + onSegSlop);
-              if (circleContains(seg.radius, prevRelX, prevRelY) && (
+              if (circleContains(seg.radius, prevRelX, prevRelY) && ((
                 seg.end >= prevNormEnd && prevNormEnd >= seg.start) ||
-                (seg.start <= prevNormStart && prevNormStart <= seg.end)) {
+                (seg.start <= prevNormStart && prevNormStart <= seg.end))) {
                 prevNormEnd = Math.min(seg.end, prevNormEnd);
                 prevNormStart = Math.max(seg.start, prevNormStart);
                 let prevArcStart = (prevNormStart - seg.start) / diff;
@@ -276,13 +319,28 @@ class App extends React.Component {
             //this.prevInComponent[index] = false;
           }
 
-          progs[0][1] += relDelta / 50;
-          mergeArcs(progs, 0);
-          if (progs[0][1] >= 1) {
-            progs[0][1] = 1;
-            seg.progress = [progs[0]];
-            seg.done = true;
+
+        } else if (seg.type === 'line') {
+          if (this.mouseClicked) {
+            let [relPos, distSq] = lineRelPosDistSq(this.mouseX, this.mouseY, seg);
+            if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < .005) {
+              let [prevRelPos, prevDistSq] = lineRelPosDistSq(this.prevX, this.prevY, seg);
+              if (prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < .005) {
+                let startPos = clamp(Math.min(relPos, prevRelPos) - onSegSlop);
+                let endPos = clamp(Math.max(relPos, prevRelPos) + onSegSlop);
+                addArc(progs, [startPos, endPos]);
+              } else {
+                addArc(progs, [clamp(prevRelPos - onSegSlop), clamp(prevRelPos + onSegSlop)]);
+              }
+            }
           }
+        }
+        progs[0][1] += relDelta / 50;
+        mergeArcs(progs, 0);
+        if (progs[0][1] >= 1) {
+          progs[0][1] = 1;
+          seg.progress = [progs[0]];
+          seg.done = true;
         }
       }
       updates.tmCircle = s.tmCircle;
@@ -525,6 +583,14 @@ function circleContains(radius, x, y) {
   let sq = x * x + y * y;
   let slop = Math.min(.05, radius / 20);
   return sq >= (radius - slop) ** 2 && sq <= (radius + slop) ** 2;
+}
+
+// [relative position along line segment, distance squared]
+function lineRelPosDistSq(x, y, seg) {
+  let [s, e] = [seg.start, seg.end];
+  let distSq = ((e[0] - s[0]) * (s[1] - y) - (s[0] - x) * (e[1] - s[1])) ** 2 / seg.lenSq;
+  let relPos = ((x - s[0]) * (e[0] - s[0]) + (y - s[1]) * (e[1] - s[1])) / seg.lenSq;
+  return [relPos, distSq];
 }
 
 export default App;
