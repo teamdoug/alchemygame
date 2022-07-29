@@ -26,8 +26,19 @@ body {
   background-color: rgba(255,255,255, 0.08);
 }
 
+#leftestPanel {
+  flex-basis: 25%;
+  margin-right: 10px;
+  padding: 5px;
+  min-height: calc(100vh);
+  max-height: calc(100vh);
+  max-width: 300px;
+  position: relative;
+  overflow: scroll;
+}
+
 #leftPanel {
-  flex-basis: 40%;
+  flex-basis: 25%;
   margin-right: 10px;
   padding: 5px;
   min-height: calc(100vh);
@@ -44,6 +55,9 @@ body {
     bottom: 0;
     height: 150px;
   }
+  #leftestPanel {
+    overflow: hidden;
+  }
   #leftPanel {
     overflow: hidden;
   }
@@ -51,7 +65,7 @@ body {
 
 #mainPanel {
   flex-grow: 5;
-  flex-basis: 60%;
+  flex-basis: 50%;
   padding: 0px;
   min-height: calc(100vh);
   max-height: calc(100vh);
