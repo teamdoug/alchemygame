@@ -396,6 +396,7 @@ class App extends React.Component {
           progs[0][1] = 1;
           seg.progress = [progs[0]];
           seg.done = true;
+          this.forceRedraw = true;
         }
       }
       updates.tmCircle = s.tmCircle;
