@@ -31,6 +31,7 @@ class App extends React.Component {
     this.height = 400;
     this.minAxis = 400;
     this.baseLineWidth = .01;
+    this.forceRedraw = true;
     this.resetLocalVars();
   }
 
@@ -133,6 +134,9 @@ class App extends React.Component {
       tmCircle: tmCircle,
     }
     this.prevInComponent = [false];
+    this.newSegments = [[]];
+    tmCircle.components[0].segments.forEach(() => { this.newSegments[0].push([]) });
+    this.forceRedraw = true;
     return state;
   }
 
@@ -142,16 +146,20 @@ class App extends React.Component {
     this.setState(state, this.resizeCanvas);
   }
 
-  render() {
-    let s = this.state;
-
+  componentDidUpdate = () => {
     const canvas = this.canvas.current;
-
+    let s = this.state;
     if (canvas !== null) {
+      console.log('update')
       this.drawCanvas(
         canvas, s.tmCircle,
       );
     }
+  }
+
+  render() {
+    let s = this.state;
+
 
     return (
       <div id="verticalFlex">
@@ -183,56 +191,90 @@ class App extends React.Component {
     const centerY = canvas.height / 2;
     const radius = Math.min(centerX, centerY);
     const ctx = this.canvas.current.getContext('2d');
-    ctx.resetTransform();
-    ctx.clearRect(0, 0, w, h);
+    if (this.forceRedraw) {
+      ctx.resetTransform();
+      ctx.clearRect(0, 0, w, h);
+    }
     ctx.setTransform(this.transform);
     ctx.lineCap = "round";
 
-    tmCircle.components.forEach((comp, index) => {
+    tmCircle.components.forEach((comp, compIndex) => {
       let planPaths = [];
       let donePaths = [];
-      for (const seg of comp.segments) {
-        ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
-        if (seg.type === 'arc') {
-          if (!seg.done) {
-            let planPath = new Path2D();
-            planPath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(seg.start), normalizedToRadians(seg.end), true);
-            planPaths.push(planPath);
-          }
-          for (const [s, e] of seg.progress) {
-            let donePath = new Path2D();
-            let diff = seg.end - seg.start;
-            let arcStart = diff * s + seg.start;
-            let arcEnd = diff * e + seg.start;
-            let normEnd = normalizedToRadians(arcEnd);
-            // Fudge so that there's not a discontinuity at the top of circles.
-            if (seg.progress[0][0] === 0 && e === 1) {
-              normEnd -= .001;
+      for (const [segIndex, seg] of comp.segments.entries()) {
+        if (this.forceRedraw) {
+          ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
+          if (seg.type === 'arc') {
+            if (!seg.done && this.forceRedraw) {
+              let planPath = new Path2D();
+              planPath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(seg.start), normalizedToRadians(seg.end), true);
+              planPaths.push(planPath);
             }
-            donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
-            donePaths.push(donePath);
+            for (const [s, e] of seg.progress) {
+              let donePath = new Path2D();
+              let diff = seg.end - seg.start;
+              let arcStart = diff * s + seg.start;
+              let arcEnd = diff * e + seg.start;
+              let normEnd = normalizedToRadians(arcEnd);
+              // Fudge so that there's not a discontinuity at the top of circles.
+              if (seg.progress[0][0] === 0 && e === 1) {
+                normEnd -= .001;
+              }
+              donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
+              donePaths.push(donePath);
+            }
+          } else if (seg.type === 'line') {
+            if (!seg.done) {
+              let planPath = new Path2D();
+              planPath.moveTo(seg.start[0], seg.start[1]);
+              planPath.lineTo(seg.end[0], seg.end[1]);
+              planPaths.push(planPath);
+            }
+            for (const [s, e] of seg.progress) {
+              let donePath = new Path2D();
+              let diffX = seg.end[0] - seg.start[0];
+              let diffY = seg.end[1] - seg.start[1];
+              let arcStart = [diffX * s + seg.start[0], diffY * s + seg.start[1]];
+              let arcEnd = [diffX * e + seg.start[0], diffY * e + seg.start[1]];
+              donePath.moveTo(arcStart[0], arcStart[1]);
+              donePath.lineTo(arcEnd[0], arcEnd[1]);
+              donePaths.push(donePath);
+            }
           }
-        } else if (seg.type === 'line') {
-          if (!seg.done) {
-            let planPath = new Path2D();
-            planPath.moveTo(seg.start[0], seg.start[1]);
-            planPath.lineTo(seg.end[0], seg.end[1]);
-            planPaths.push(planPath);
+          ctx.strokeStyle = progressColor;
+          for (const planPath of planPaths) {
+            ctx.stroke(planPath);
           }
-          for (const [s, e] of seg.progress) {
-            let donePath = new Path2D();
-            let diffX = seg.end[0] - seg.start[0];
-            let diffY = seg.end[1] - seg.start[1];
-            let arcStart = [diffX * s + seg.start[0], diffY * s + seg.start[1]];
-            let arcEnd = [diffX * e + seg.start[0], diffY * e + seg.start[1]];
-            donePath.moveTo(arcStart[0], arcStart[1]);
-            donePath.lineTo(arcEnd[0], arcEnd[1]);
-            donePaths.push(donePath);
+        } else {
+          if (seg.type === 'arc') {
+            this.newSegments[compIndex][segIndex].forEach(([s, e]) => {
+              let donePath = new Path2D();
+              let diff = seg.end - seg.start;
+              let arcStart = diff * s + seg.start;
+              let arcEnd = diff * e + seg.start;
+              let normEnd = normalizedToRadians(arcEnd);
+              // Fudge so that there's not a discontinuity at the top of circles.
+              if (seg.progress[0][0] === 0 && e === 1) {
+                normEnd -= .001;
+              }
+              donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
+              donePaths.push(donePath);
+            });
+            this.newSegments[compIndex][segIndex] = [];
+          } else if (seg.type === 'line') {
+            this.newSegments[compIndex][segIndex].forEach(([s, e]) => {
+              console.log('line', s, e)
+              let donePath = new Path2D();
+              let diffX = seg.end[0] - seg.start[0];
+              let diffY = seg.end[1] - seg.start[1];
+              let arcStart = [diffX * s + seg.start[0], diffY * s + seg.start[1]];
+              let arcEnd = [diffX * e + seg.start[0], diffY * e + seg.start[1]];
+              donePath.moveTo(arcStart[0], arcStart[1]);
+              donePath.lineTo(arcEnd[0], arcEnd[1]);
+              donePaths.push(donePath);
+            });
+            this.newSegments[compIndex][segIndex] = [];
           }
-        }
-        ctx.strokeStyle = progressColor;
-        for (const planPath of planPaths) {
-          ctx.stroke(planPath);
         }
         ctx.strokeStyle = doneColor;
         for (const donePath of donePaths) {
@@ -240,6 +282,10 @@ class App extends React.Component {
         }
       }
     });
+
+    if (this.forceRedraw) {
+      this.forceRedraw = false;
+    }
   }
 
 
@@ -247,8 +293,8 @@ class App extends React.Component {
     let s = this.state;
     let relDelta = delta / 1000;
     let updates = {};
-    for (const [index, component] of s.tmCircle.components.entries()) {
-      for (const seg of component.segments) {
+    for (const [compIndex, component] of s.tmCircle.components.entries()) {
+      for (const [segIndex, seg] of component.segments.entries()) {
         if (seg.done) {
           continue;
         }
@@ -291,12 +337,14 @@ class App extends React.Component {
                   //console.log('straddle', circle, curArcStart, curArcEnd, curNormalized, prevArcStart, prevArcEnd, prevNormalized)
                   addArc(progs, [0, start]);
                   addArc(progs, [end, 1]);
+                  this.newSegments[compIndex][segIndex].push([0, start], [end, 1])
                 } else {
                   if (end - start > 0.25) {
                     //console.log('big two', start, end);
                   }
                   //console.log('twopoint')
                   addArc(progs, [start, end]);
+                  this.newSegments[compIndex][segIndex].push([start, end])
                 }
               } else {
 
@@ -304,12 +352,14 @@ class App extends React.Component {
                   //console.log('single straddle')
                   addArc(progs, [0, curArcStart]);
                   addArc(progs, [curArcEnd, 1]);
+                  this.newSegments[compIndex][segIndex].push([0, curArcStart], [curArcEnd, 1])
                 } else {
                   if (curArcEnd - curArcStart > 0.25) {
                     //console.log('big single', circle, curArcStart, curArcEnd, curNormalized);
                   }
                   //console.log('single')
                   addArc(progs, [curArcStart, curArcEnd]);
+                  this.newSegments[compIndex][segIndex].push([curArcStart, curArcEnd])
                 }
               }
 
@@ -329,13 +379,18 @@ class App extends React.Component {
                 let startPos = clamp(Math.min(relPos, prevRelPos) - onSegSlop);
                 let endPos = clamp(Math.max(relPos, prevRelPos) + onSegSlop);
                 addArc(progs, [startPos, endPos]);
+                this.newSegments[compIndex][segIndex].push([startPos, endPos])
               } else {
-                addArc(progs, [clamp(prevRelPos - onSegSlop), clamp(prevRelPos + onSegSlop)]);
+                let arc = [clamp(prevRelPos - onSegSlop), clamp(prevRelPos + onSegSlop)];
+                addArc(progs, arc);
+                this.newSegments[compIndex][segIndex].push(arc);
               }
             }
           }
         }
-        progs[0][1] += relDelta / 50;
+        let deltaSize = relDelta / 50;
+        this.newSegments[compIndex][segIndex].push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
+        progs[0][1] += deltaSize;
         mergeArcs(progs, 0);
         if (progs[0][1] >= 1) {
           progs[0][1] = 1;
@@ -441,6 +496,7 @@ class App extends React.Component {
     if (this.state.paused) {
       this.forceUpdate();
     }
+    this.forceRedraw = true;
   };
 
   componentDidMount() {
