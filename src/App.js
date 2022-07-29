@@ -21,6 +21,7 @@ class App extends React.Component {
     this.lastFrame = window.performance.now();
     this.lastSave = window.performance.now();
     this.canvas = React.createRef();
+    this.previewCanvas = React.createRef();
     this.width = 800;
     const storedState = localStorage.getItem("heartosisIGJ5Save");
     if (storedState) {
@@ -128,6 +129,7 @@ class App extends React.Component {
     let state = {
       paused: false,
       tmCircle: tmCircle,
+      outerAnchors: 0,
     }
     this.newSegments = tmCircle.segments.map(() => []);
     this.forceRedraw = true;
@@ -141,13 +143,18 @@ class App extends React.Component {
   }
 
   componentDidUpdate = () => {
-    const canvas = this.canvas.current;
     let s = this.state;
-    if (canvas !== null) {
+    if (this.canvas.current !== null) {
       this.drawCanvas(
-        canvas, s.tmCircle,
+        this.canvas, s.tmCircle, this.transform, this.forceRedraw
       );
     }
+    const previewCanvas = this.previewCanvas.current;
+    if (this.previewCanvas !== null) { 
+      this.drawCanvas(this.previewCanvas, s.tmCircle, this.previewTransform, this.forceRedraw)
+    }
+    this.forceRedraw = false;
+    this.newSegments = s.tmCircle.segments.map(() => []);
   }
 
   render() {
@@ -160,6 +167,22 @@ class App extends React.Component {
           <div className="panel" id="leftestPanel">
           </div>
           <div className="panel" id="leftPanel">
+            <h3>Transmutation Circles</h3>
+            <h4>Builder</h4>
+            <div>
+              Outer Anchors
+              <input type="range" min="0" max="5" value={this.state.outerAnchors}
+                onChange={(e) => {
+                  this.setState({ outerAnchors : e.target.value });
+                  e.preventDefault();
+                }}
+              ></input>
+            </div>
+            <div>
+            <canvas id="previewCanvas"
+              ref={this.previewCanvas}
+              ></canvas>
+              </div>
           </div>
           <div className="panel" id="mainPanel">
             <canvas
@@ -179,23 +202,23 @@ class App extends React.Component {
     );
   }
 
-  drawCanvas = (canvas, tmCircle) => {
+  drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
     const w = canvas.width;
     const h = canvas.height;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = Math.min(centerX, centerY);
-    const ctx = this.canvas.current.getContext('2d');
+    const ctx = canvas.current.getContext('2d');
     if (this.forceRedraw) {
       ctx.resetTransform();
       ctx.clearRect(0, 0, w, h);
     }
-    ctx.setTransform(this.transform);
+    ctx.setTransform(transform);
     ctx.lineCap = "round";
     let planPaths = [];
     let donePaths = [];
     tmCircle.segments.forEach((seg, segIndex) => {
-      if (this.forceRedraw) {
+      if (forceRedraw) {
         ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
         if (seg.type === 'arc') {
           if (!seg.done && this.forceRedraw) {
@@ -253,7 +276,6 @@ class App extends React.Component {
             donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
             donePaths.push(donePath);
           });
-          this.newSegments[segIndex] = [];
         } else if (seg.type === 'line') {
           this.newSegments[segIndex].forEach(([s, e]) => {
             let donePath = new Path2D();
@@ -265,7 +287,6 @@ class App extends React.Component {
             donePath.lineTo(arcEnd[0], arcEnd[1]);
             donePaths.push(donePath);
           });
-          this.newSegments[segIndex] = [];
         }
       }
       ctx.strokeStyle = doneColor;
@@ -274,10 +295,6 @@ class App extends React.Component {
       }
 
     });
-
-    if (this.forceRedraw) {
-      this.forceRedraw = false;
-    }
   }
 
 
@@ -480,6 +497,17 @@ class App extends React.Component {
       this.transform = new DOMMatrix().translate(this.width / 2, this.height / 2).scale(this.minAxis / 2, -this.minAxis / 2);
       this.inverseTransform = this.transform.inverse();
       context.setTransform(this.transform);
+    }
+
+    if (this.previewCanvas.current !== null) {
+      this.previewCanvas.current.style.height = this.previewCanvas.current.width + 'px';
+      this.previewWidth = this.previewCanvas.current.width;
+      this.previewHeight = this.previewCanvas.current.height;
+      let context = this.previewCanvas.current.getContext('2d');
+      // Why is it 4 for the width?????
+      this.previewTransform = new DOMMatrix().translate(this.previewWidth / 2, this.previewWidth / 4).scale(this.previewWidth / 2*.9, -this.previewWidth / 4*.9);
+      this.previewInverseTransform = this.previewTransform.inverse();
+      context.setTransform(this.previewTransform);
     }
 
     if (this.state.paused) {

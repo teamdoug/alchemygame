@@ -70,3 +70,8 @@ body {
   min-height: calc(100vh);
   max-height: calc(100vh);
 }
+
+#previewCanvas {
+  width: 100%;
+  padding-top: 10px;
+}
