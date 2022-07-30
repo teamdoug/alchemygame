@@ -129,6 +129,7 @@ class App extends React.Component {
     let state = {
       paused: false,
       tmCircle: tmCircle,
+      previewCircle: null,
       outerAnchors: 0,
     }
     this.newSegments = tmCircle.segments.map(() => []);
@@ -149,10 +150,7 @@ class App extends React.Component {
         this.canvas, s.tmCircle, this.transform, this.forceRedraw
       );
     }
-    const previewCanvas = this.previewCanvas.current;
-    if (this.previewCanvas !== null) { 
-      this.drawCanvas(this.previewCanvas, s.tmCircle, this.previewTransform, this.forceRedraw)
-    }
+
     this.forceRedraw = false;
     this.newSegments = s.tmCircle.segments.map(() => []);
   }
@@ -173,16 +171,16 @@ class App extends React.Component {
               Outer Anchors
               <input type="range" min="0" max="5" value={this.state.outerAnchors}
                 onChange={(e) => {
-                  this.setState({ outerAnchors : e.target.value });
+                  this.setState({ outerAnchors: e.target.value }, this.createPreview);
                   e.preventDefault();
                 }}
               ></input>
             </div>
             <div>
-            <canvas id="previewCanvas"
-              ref={this.previewCanvas}
+              <canvas id="previewCanvas"
+                ref={this.previewCanvas}
               ></canvas>
-              </div>
+            </div>
           </div>
           <div className="panel" id="mainPanel">
             <canvas
@@ -202,14 +200,56 @@ class App extends React.Component {
     );
   }
 
+  createPreview = () => {
+    let s = this.state;
+    let previewCircle = this.createCircle(s, true);
+    const previewCanvas = this.previewCanvas;
+    this.drawCanvas(previewCanvas, previewCircle, this.previewTransform, true)
+    this.setState({previewCircle})
+  }
+
+  createCircle = (state, done) => {
+    let segments = [];
+    let spacing = 1.0 / state.outerAnchors;
+    if (state.outerAnchors == 0) {
+      segments.push({
+        type: 'arc',
+        center: [0, 0],
+        radius: .9,
+        start: 0,
+        end: 1,
+      });
+      return this.circleFromSegments(segments, done);
+    }
+    segments.push({
+      type: 'arc',
+      center: [0, .9],
+      radius: .1,
+      start: 0,
+      end: 1,
+    });
+    return this.circleFromSegments(segments, done);
+  }
+
+  circleFromSegments = (segments, done) => {
+    segments.forEach((segment) => {
+      segment.progress = [[0, (done ? 1 : 0)]];
+      if (!segment.lineWidth) {
+        segment.lineWidth = 1
+      }
+      segment.done = done;
+    });
+    return { segments }
+  }
+
   drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
-    const w = canvas.width;
-    const h = canvas.height;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    const w = canvas.current.width;
+    const h = canvas.current.height;
+    const centerX = w / 2;
+    const centerY = h / 2;
     const radius = Math.min(centerX, centerY);
     const ctx = canvas.current.getContext('2d');
-    if (this.forceRedraw) {
+    if (forceRedraw) {
       ctx.resetTransform();
       ctx.clearRect(0, 0, w, h);
     }
@@ -221,7 +261,7 @@ class App extends React.Component {
       if (forceRedraw) {
         ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
         if (seg.type === 'arc') {
-          if (!seg.done && this.forceRedraw) {
+          if (!seg.done && forceRedraw) {
             let planPath = new Path2D();
             planPath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(seg.start), normalizedToRadians(seg.end), true);
             planPaths.push(planPath);
@@ -500,12 +540,14 @@ class App extends React.Component {
     }
 
     if (this.previewCanvas.current !== null) {
-      this.previewCanvas.current.style.height = this.previewCanvas.current.width + 'px';
+      let width = this.previewCanvas.current.getBoundingClientRect().width;
+      this.previewCanvas.current.style.height = width + 'px';
+      this.previewCanvas.current.width = this.previewCanvas.current.offsetWidth;
+      this.previewCanvas.current.height = this.previewCanvas.current.offsetHeight;
       this.previewWidth = this.previewCanvas.current.width;
       this.previewHeight = this.previewCanvas.current.height;
       let context = this.previewCanvas.current.getContext('2d');
-      // Why is it 4 for the width?????
-      this.previewTransform = new DOMMatrix().translate(this.previewWidth / 2, this.previewWidth / 4).scale(this.previewWidth / 2*.9, -this.previewWidth / 4*.9);
+      this.previewTransform = new DOMMatrix().translate(this.previewWidth / 2, this.previewWidth / 2).scale(this.previewWidth / 2 * .9, -this.previewWidth / 2 * .9);
       this.previewInverseTransform = this.previewTransform.inverse();
       context.setTransform(this.previewTransform);
     }
@@ -514,6 +556,7 @@ class App extends React.Component {
       this.forceUpdate();
     }
     this.forceRedraw = true;
+    this.createPreview();
   };
 
   componentDidMount() {
