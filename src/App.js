@@ -136,8 +136,8 @@ class App extends React.Component {
       paused: false,
       tmCircle: tmCircle,
       previewCircle: null,
-      outerAnchors: 0,
-      innerAnchors: 0,
+      builderOuterAnchors: 0,
+      builderInnerAnchors: 0,
       drawSpeed: .01,
     }
     this.newSegments = tmCircle.segments.map(() => []);
@@ -164,9 +164,10 @@ class App extends React.Component {
   }
 
   startDraw = () => {
-    this.setState({tmCircle: this.clearCircle(this.state.previewCircle)})
+    let tmCircle = this.clearCircle(this.state.previewCircle);
+    this.setState({tmCircle})
     this.forceRedraw = true;
-    this.newSegments = [];
+    this.newSegments = tmCircle.segments.map(() => []);
   }
 
   clearCircle = (circle) => {
@@ -196,18 +197,18 @@ class App extends React.Component {
             <h4>Builder</h4>
             <div>
               Outer Anchors
-              <input type="range" min="0" max="6" value={this.state.outerAnchors}
+              <input type="range" min="0" max="6" value={this.state.builderOuterAnchors}
                 onChange={(e) => {
-                  this.setState({ outerAnchors: e.target.value }, this.createPreview);
+                  this.setState({ builderOuterAnchors: e.target.value }, this.createPreview);
                   e.preventDefault();
                 }}
               ></input>
             </div>
             <div>
               Inner Anchors
-              <input type="range" min="0" max="6" value={this.state.innerAnchors}
+              <input type="range" min="0" max="6" value={this.state.builderInnerAnchors}
                 onChange={(e) => {
-                  this.setState({ innerAnchors: e.target.value }, this.createPreview);
+                  this.setState({ builderInnerAnchors: e.target.value }, this.createPreview);
                   e.preventDefault();
                 }}
               ></input>
@@ -251,9 +252,9 @@ class App extends React.Component {
 
   createCircle = (state, done) => {
     let segments = [];
-    let spacing = 1.0 / state.outerAnchors;
+    let spacing = 1.0 / state.builderOuterAnchors;
     let mainRadius = .9;
-    if (state.outerAnchors == 0) {
+    if (state.builderOuterAnchors == 0) {
       segments.push({
         type: 'arc',
         center: [0, 0],
@@ -262,7 +263,7 @@ class App extends React.Component {
         end: 1,
       });
     }
-    for (let i = 0; i < state.outerAnchors; i++) {
+    for (let i = 0; i < state.builderOuterAnchors; i++) {
       let rad = normalizedToRadians(spacing * i);
 
       segments.push({
@@ -273,9 +274,9 @@ class App extends React.Component {
         end: 1,
       });
     }
-    for (let i = 0; i < state.outerAnchors; i++) {
+    for (let i = 0; i < state.builderOuterAnchors; i++) {
       let curA = segments[i];
-      let nextA = segments[(i+1) % state.outerAnchors];
+      let nextA = segments[(i+1) % state.builderOuterAnchors];
       let tempSeg = {
         center: [0, 0],
         radius: mainRadius,
@@ -292,9 +293,9 @@ class App extends React.Component {
         end: norm1,
       })
     }
-    spacing = 1.0 / state.innerAnchors;
+    spacing = 1.0 / state.builderInnerAnchors;
     let innerRadius = 0.3;
-    for (let i = 0; i < state.innerAnchors; i++) {
+    for (let i = 0; i < state.builderInnerAnchors; i++) {
       let rad = normalizedToRadians(.5 + spacing * i);
 
       segments.push({
@@ -427,6 +428,7 @@ class App extends React.Component {
         if (seg.done) {
           continue;
         }
+        let newSegs = [];
         let progs = seg.progress;
 
         if (seg.type === 'arc') {
@@ -466,22 +468,22 @@ class App extends React.Component {
                 if (end > .75 && start < .25) {
                   addArc(progs, [0, start]);
                   addArc(progs, [end, 1]);
-                  this.newSegments[segIndex].push([0, start], [end, 1])
+                  newSegs.push([0, start], [end, 1])
                 } else {
                   if (end - start > 0.25) {
                   }
                   addArc(progs, [start, end]);
-                  this.newSegments[segIndex].push([start, end])
+                  newSegs.push([start, end])
                 }
               } else {
 
                 if (curArcEnd > .75 && curArcStart < .25) {
                   addArc(progs, [0, curArcStart]);
                   addArc(progs, [curArcEnd, 1]);
-                  this.newSegments[segIndex].push([0, curArcStart], [curArcEnd, 1])
+                  newSegs.push([0, curArcStart], [curArcEnd, 1])
                 } else {
                   addArc(progs, [curArcStart, curArcEnd]);
-                  this.newSegments[segIndex].push([curArcStart, curArcEnd])
+                  newSegs.push([curArcStart, curArcEnd])
                 }
               }
 
@@ -499,19 +501,27 @@ class App extends React.Component {
                 let startPos = clamp(Math.min(relPos, prevRelPos) - onSegSlop);
                 let endPos = clamp(Math.max(relPos, prevRelPos) + onSegSlop);
                 addArc(progs, [startPos, endPos]);
-                this.newSegments[segIndex].push([startPos, endPos])
+                newSegs.push([startPos, endPos])
               } else {
                 let arc = [clamp(prevRelPos - onSegSlop), clamp(prevRelPos + onSegSlop)];
                 addArc(progs, arc);
-                this.newSegments[segIndex].push(arc);
+                newSegs.push(arc);
               }
             }
           }
         }
         let deltaSize = relDelta * s.drawSpeed / seg.len;
-        this.newSegments[segIndex].push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
+        newSegs.push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
         progs[0][1] += deltaSize;
         mergeArcs(progs, 0);
+        newSegs.forEach((newSeg) => {
+          progs.forEach((prog) => {
+            if (overlaps(newSeg, prog)) {
+              this.newSegments[segIndex].push(prog)
+            }
+          });
+          
+        });
         if (progs[0][1] >= 1) {
           progs[0][1] = 1;
           seg.progress = [progs[0]];
@@ -818,6 +828,19 @@ function intersectCircles(segMain, segAlt, dir) {
     return mul * x1 < mul * x2 ? [x1, y1] : [x2, y2];
   }
   throw new Error('too far' + [x1,y1, x2, y2])
+}
+
+function overlaps(s, t) {
+  if (s[0] >= t[0] && s[0] <= t[1]) {
+    return true;
+  }
+  if (s[1] >= t[0] && s[1] <= t[1]) {
+    return true;
+  }
+  if (s[0] <= t[0] && s[1] >= t[1]) {
+    return true;
+  }
+  return false;
 }
 
 export default App;
