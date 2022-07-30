@@ -169,7 +169,7 @@ class App extends React.Component {
             <h4>Builder</h4>
             <div>
               Outer Anchors
-              <input type="range" min="0" max="5" value={this.state.outerAnchors}
+              <input type="range" min="0" max="6" value={this.state.outerAnchors}
                 onChange={(e) => {
                   this.setState({ outerAnchors: e.target.value }, this.createPreview);
                   e.preventDefault();
@@ -205,29 +205,53 @@ class App extends React.Component {
     let previewCircle = this.createCircle(s, true);
     const previewCanvas = this.previewCanvas;
     this.drawCanvas(previewCanvas, previewCircle, this.previewTransform, true)
-    this.setState({previewCircle})
+    this.setState({ previewCircle })
   }
 
   createCircle = (state, done) => {
     let segments = [];
     let spacing = 1.0 / state.outerAnchors;
+    let mainRadius = .9;
     if (state.outerAnchors == 0) {
       segments.push({
         type: 'arc',
         center: [0, 0],
-        radius: .9,
+        radius: mainRadius,
         start: 0,
         end: 1,
       });
       return this.circleFromSegments(segments, done);
     }
-    segments.push({
-      type: 'arc',
-      center: [0, .9],
-      radius: .1,
-      start: 0,
-      end: 1,
-    });
+    for (let i = 0; i < state.outerAnchors; i++) {
+      let rad = normalizedToRadians(spacing * i);
+
+      segments.push({
+        type: 'arc',
+        center: [mainRadius * Math.cos(rad), mainRadius * Math.sin(rad)],
+        radius: .1,
+        start: 0,
+        end: 1,
+      });
+    }
+    for (let i = 0; i < state.outerAnchors; i++) {
+      let curA = segments[i];
+      let nextA = segments[(i+1) % state.outerAnchors];
+      let tempSeg = {
+        center: [0, 0],
+        radius: mainRadius,
+      }
+      let sect0 = intersectCircles(tempSeg, curA, 'cw');
+      let sect1 = intersectCircles(tempSeg, nextA, 'ccw');
+      let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
+      let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
+      segments.push({
+        type: 'arc',
+        center: [0, 0],
+        radius: mainRadius,
+        start: norm0,
+        end: norm1,
+      })
+    }
     return this.circleFromSegments(segments, done);
   }
 
@@ -385,30 +409,22 @@ class App extends React.Component {
                   Math.max(prevArcEnd, curArcEnd));
 
                 if (end > .75 && start < .25) {
-                  //console.log('straddle', circle, curArcStart, curArcEnd, curNormalized, prevArcStart, prevArcEnd, prevNormalized)
                   addArc(progs, [0, start]);
                   addArc(progs, [end, 1]);
                   this.newSegments[segIndex].push([0, start], [end, 1])
                 } else {
                   if (end - start > 0.25) {
-                    //console.log('big two', start, end);
                   }
-                  //console.log('twopoint')
                   addArc(progs, [start, end]);
                   this.newSegments[segIndex].push([start, end])
                 }
               } else {
 
                 if (curArcEnd > .75 && curArcStart < .25) {
-                  //console.log('single straddle')
                   addArc(progs, [0, curArcStart]);
                   addArc(progs, [curArcEnd, 1]);
                   this.newSegments[segIndex].push([0, curArcStart], [curArcEnd, 1])
                 } else {
-                  if (curArcEnd - curArcStart > 0.25) {
-                    //console.log('big single', circle, curArcStart, curArcEnd, curNormalized);
-                  }
-                  //console.log('single')
                   addArc(progs, [curArcStart, curArcEnd]);
                   this.newSegments[segIndex].push([curArcStart, curArcEnd])
                 }
@@ -707,6 +723,46 @@ function lineRelPosDistSq(x, y, seg) {
   let distSq = ((e[0] - s[0]) * (s[1] - y) - (s[0] - x) * (e[1] - s[1])) ** 2 / seg.lenSq;
   let relPos = ((x - s[0]) * (e[0] - s[0]) + (y - s[1]) * (e[1] - s[1])) / seg.lenSq;
   return [relPos, distSq];
+}
+
+function intersectCircles(segMain, segAlt, dir) {
+  if (segMain.center[0] != 0 || segMain.center[1] != 0) {
+    throw new Error("segMain must be centered at 0. idk")
+  }
+  let [ax, ay] = segAlt.center;
+  let [mr, ar] = [segMain.radius, segAlt.radius];
+  //console.log(ax, ay, ar, mr)
+  if (Math.abs(ax) < 0.00001) {
+    let y = (ar * ar - mr * mr - ay * ay) / (-2 * ay);
+    let x = Math.sqrt(mr * mr - y * y);
+    let mul = (dir == 'cw' ? 1 : -1);
+    return [mul * (y > 0 ? x : -x), y];
+  }
+  if (Math.abs(ay) < 0.00001) {
+    let x = (ar * ar - mr * mr - ax * ax) / (-2 * ax);
+    let y = Math.sqrt(mr * mr - x * x);
+    let mul = (dir == 'ccw' ? 1 : -1);
+    return [x, mul * (x > 0 ? y : -y)];
+  }
+  let ycoeff = - ay / ax;
+  let ycons = (ar * ar - mr * mr - ay * ay - ax * ax) / (-2 * ax);
+  let a = ycoeff * ycoeff + 1
+  let b = 2 * ycons * ycoeff
+  let c = ycons * ycons - mr * mr;
+  let radical = Math.sqrt(b * b - 4 * a * c);
+  let y1 = (- b + radical) / (2 * a);
+  let y2 = (- b - radical) / (2 * a);
+  let xf = (y) => {return (ar * ar - mr * mr - ay * ay + 2 * ay * y - ax * ax) / (-2 * ax)}
+  let [x1, x2] = [xf(y1), xf(y2)];
+  if (Math.sign(x1) === Math.sign(x2)) {
+    let mul = (Boolean(Math.sign(x1) > 0) !== (dir === 'cw') ? -1 : 1);
+    return mul * y1 < mul * y2 ? [x1, y1] : [x2, y2];
+  }
+  if (Math.sign(y1) === Math.sign(y2)) {
+    let mul = (Boolean(Math.sign(y1) > 0) !== (dir === 'cw') ? -1 : 1);
+    return mul * x1 < mul * x2 ? [x1, y1] : [x2, y2];
+  }
+  throw new Error('too far' + [x1,y1, x2, y2])
 }
 
 export default App;
