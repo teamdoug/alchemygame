@@ -5,9 +5,6 @@ const debug = true;
 const maxWidth = 4000;
 const maxHeight = 4500;
 const pi = Math.PI;
-const sin = Math.sin;
-const cos = Math.cos;
-const tan = Math.tan;
 const progressColor = '#333';
 const doneColor = '#FFF';
 
@@ -53,6 +50,7 @@ class App extends React.Component {
         radius: 1,
         start: 0,
         end: 1,
+        len: 2 * pi,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -62,6 +60,7 @@ class App extends React.Component {
         radius: 2 / 3,
         start: 0,
         end: .5,
+        len: 2 * pi * 2/3 * .5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -71,6 +70,7 @@ class App extends React.Component {
         radius: 1 / 3,
         start: .5,
         end: 1,
+        len: 2 * pi * 1/3 * .5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -80,6 +80,7 @@ class App extends React.Component {
         radius: 3 / 4,
         start: .75,
         end: 1,
+        len: 2 * pi * 3/4 * .25,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -89,6 +90,7 @@ class App extends React.Component {
         radius: 3 / 4,
         start: 0,
         end: .25,
+        len: 2 * pi * 3/4 * .25,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -98,6 +100,7 @@ class App extends React.Component {
         radius: 2 / 4,
         start: .25,
         end: .75,
+        len: 2 * pi * 2/4 * .5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -135,6 +138,7 @@ class App extends React.Component {
       previewCircle: null,
       outerAnchors: 0,
       innerAnchors: 0,
+      drawSpeed: .01,
     }
     this.newSegments = tmCircle.segments.map(() => []);
     this.forceRedraw = true;
@@ -310,6 +314,7 @@ class App extends React.Component {
       if (!segment.lineWidth) {
         segment.lineWidth = 1
       }
+      segment.len = segment.radius * 2 * pi * (segment.end - segment.start);
       segment.done = done;
     });
     return { segments }
@@ -503,7 +508,7 @@ class App extends React.Component {
             }
           }
         }
-        let deltaSize = relDelta / 50;
+        let deltaSize = relDelta * s.drawSpeed / seg.len;
         this.newSegments[segIndex].push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
         progs[0][1] += deltaSize;
         mergeArcs(progs, 0);
@@ -764,7 +769,7 @@ export function mergeArcs(arcs, index) {
 
 function circleContains(radius, x, y) {
   let sq = x * x + y * y;
-  let slop = .05
+  let slop = .02
   return sq >= (radius - slop) ** 2 && sq <= (radius + slop) ** 2;
 }
 

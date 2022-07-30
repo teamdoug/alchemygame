@@ -1,3 +1,13 @@
+# IGJ5 Alchemy Game - Dog World (working title)
+
+## TODO
+* Why does having more circles make existing circles brighter?
+* More drawing options (non-circles, inner circle esp.)
+* Indicate already-created circles on the builder, maybe even on sliders if all variations done?
+* Circle selector
+* Split power among circles????
+* You know, resources
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
