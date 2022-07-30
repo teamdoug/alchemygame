@@ -106,6 +106,7 @@ class App extends React.Component {
         start: [0, 0],
         end: [0.5, 0],
         lenSq: 0.5 ** 2,
+        len: 0.5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -114,6 +115,7 @@ class App extends React.Component {
         start: [0, 0],
         end: [0, 2 / 3],
         lenSq: (2 / 3) ** 2,
+        len: (2/3),
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -122,6 +124,7 @@ class App extends React.Component {
         start: [0, 1],
         end: [1, 0],
         lenSq: 1 + 1,
+        len: Math.sqrt(2),
         lineWidth: 1,
         progress: [[0, 0]],
       }],
@@ -155,6 +158,26 @@ class App extends React.Component {
     this.newSegments = s.tmCircle.segments.map(() => []);
   }
 
+  startDraw = () => {
+    this.setState({tmCircle: this.clearCircle(this.state.previewCircle)})
+    this.forceRedraw = true;
+    this.newSegments = [];
+  }
+
+  clearCircle = (circle) => {
+    let segs = [];
+    circle.segments.forEach((s) => {
+      segs.push({
+        ...s,
+        done: false,
+        progress: [[0, 0]],
+        center: [s.center[0], s.center[1]],
+      });
+    });
+    console.log(segs[0]);
+    return {segments: segs}
+  }
+
   render() {
     let s = this.state;
 
@@ -180,6 +203,11 @@ class App extends React.Component {
               <canvas id="previewCanvas"
                 ref={this.previewCanvas}
               ></canvas>
+            </div>
+            <div>
+            <button 
+                  onClick={this.startDraw}
+                >Let's Draw It</button> 
             </div>
           </div>
           <div className="panel" id="mainPanel">
@@ -374,12 +402,13 @@ class App extends React.Component {
           continue;
         }
         let progs = seg.progress;
-        let onSegSlop = .001;
 
         if (seg.type === 'arc') {
           let relX = this.mouseX - seg.center[0];
           let relY = this.mouseY - seg.center[1];
           let circle = (seg.start === 0) && (seg.end === 1)
+          let onSegSlop = .001 * seg.radius;
+
 
           if (this.mouseClicked && circleContains(seg.radius, relX, relY)) {
             let curRadians = Math.atan2(relY, relX);
@@ -435,6 +464,7 @@ class App extends React.Component {
 
 
         } else if (seg.type === 'line') {
+          let onSegSlop = .001 * seg.len;
           if (this.mouseClicked) {
             let [relPos, distSq] = lineRelPosDistSq(this.mouseX, this.mouseY, seg);
             if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < .005) {
@@ -713,7 +743,7 @@ export function mergeArcs(arcs, index) {
 
 function circleContains(radius, x, y) {
   let sq = x * x + y * y;
-  let slop = Math.min(.05, radius / 20);
+  let slop = .05
   return sq >= (radius - slop) ** 2 && sq <= (radius + slop) ** 2;
 }
 
