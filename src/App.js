@@ -134,6 +134,7 @@ class App extends React.Component {
       tmCircle: tmCircle,
       previewCircle: null,
       outerAnchors: 0,
+      innerAnchors: 0,
     }
     this.newSegments = tmCircle.segments.map(() => []);
     this.forceRedraw = true;
@@ -174,7 +175,6 @@ class App extends React.Component {
         center: [s.center[0], s.center[1]],
       });
     });
-    console.log(segs[0]);
     return {segments: segs}
   }
 
@@ -195,6 +195,15 @@ class App extends React.Component {
               <input type="range" min="0" max="6" value={this.state.outerAnchors}
                 onChange={(e) => {
                   this.setState({ outerAnchors: e.target.value }, this.createPreview);
+                  e.preventDefault();
+                }}
+              ></input>
+            </div>
+            <div>
+              Inner Anchors
+              <input type="range" min="0" max="6" value={this.state.innerAnchors}
+                onChange={(e) => {
+                  this.setState({ innerAnchors: e.target.value }, this.createPreview);
                   e.preventDefault();
                 }}
               ></input>
@@ -248,7 +257,6 @@ class App extends React.Component {
         start: 0,
         end: 1,
       });
-      return this.circleFromSegments(segments, done);
     }
     for (let i = 0; i < state.outerAnchors; i++) {
       let rad = normalizedToRadians(spacing * i);
@@ -279,6 +287,19 @@ class App extends React.Component {
         start: norm0,
         end: norm1,
       })
+    }
+    spacing = 1.0 / state.innerAnchors;
+    let innerRadius = 0.3;
+    for (let i = 0; i < state.innerAnchors; i++) {
+      let rad = normalizedToRadians(.5 + spacing * i);
+
+      segments.push({
+        type: 'arc',
+        center: [innerRadius * Math.cos(rad), innerRadius * Math.sin(rad)],
+        radius: .1,
+        start: 0,
+        end: 1,
+      });
     }
     return this.circleFromSegments(segments, done);
   }
@@ -761,7 +782,6 @@ function intersectCircles(segMain, segAlt, dir) {
   }
   let [ax, ay] = segAlt.center;
   let [mr, ar] = [segMain.radius, segAlt.radius];
-  //console.log(ax, ay, ar, mr)
   if (Math.abs(ax) < 0.00001) {
     let y = (ar * ar - mr * mr - ay * ay) / (-2 * ay);
     let x = Math.sqrt(mr * mr - y * y);
