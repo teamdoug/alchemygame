@@ -89,7 +89,6 @@ class App extends React.Component {
       this.state = JSON.parse(storedState);
     } else {
       this.state = this.getInitState();
-      this.reset();
     }
   }
 
@@ -242,6 +241,7 @@ class App extends React.Component {
     this.resetLocalVars();
     let state = this.getInitState();
     this.setState(state, this.resizeCanvas);
+ 
   }
 
   componentDidUpdate = () => {
@@ -253,7 +253,6 @@ class App extends React.Component {
     }
 
     for (const [index, circle] of this.undrawnCompleted) {
-      console.log('index', index)
       this.completedCanvases[index].current.width = completedSize
       this.completedCanvases[index].current.height = completedSize
       this.drawCanvas(this.completedCanvases[index], circle, this.completedTransform, true)
