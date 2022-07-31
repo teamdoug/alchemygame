@@ -7,6 +7,7 @@ const maxHeight = 4500;
 const pi = Math.PI;
 const progressColor = '#333';
 const doneColor = '#FFF';
+const completedSize = 100;
 
 
 class App extends React.Component {
@@ -29,7 +30,6 @@ class App extends React.Component {
     this.height = 400;
     this.minAxis = 400;
     this.baseLineWidth = .01;
-    this.forceRedraw = true;
     this.resetLocalVars();
   }
 
@@ -39,6 +39,10 @@ class App extends React.Component {
     this.mouseX = 0;
     this.mouseY = 0;
     this.mouseClicked = false;
+    this.completedCanvases = {};
+    this.undrawnCompleted = new Map();
+    this.forceRedraw = true;
+    this.completedTransform = new DOMMatrix().translate(completedSize / 2, completedSize / 2).scale(completedSize * .9 / 2, -completedSize * .9 / 2);
   };
 
   getInitState = () => {
@@ -60,7 +64,7 @@ class App extends React.Component {
         radius: 2 / 3,
         start: 0,
         end: .5,
-        len: 2 * pi * 2/3 * .5,
+        len: 2 * pi * 2 / 3 * .5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -70,7 +74,7 @@ class App extends React.Component {
         radius: 1 / 3,
         start: .5,
         end: 1,
-        len: 2 * pi * 1/3 * .5,
+        len: 2 * pi * 1 / 3 * .5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -80,7 +84,7 @@ class App extends React.Component {
         radius: 3 / 4,
         start: .75,
         end: 1,
-        len: 2 * pi * 3/4 * .25,
+        len: 2 * pi * 3 / 4 * .25,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -90,7 +94,7 @@ class App extends React.Component {
         radius: 3 / 4,
         start: 0,
         end: .25,
-        len: 2 * pi * 3/4 * .25,
+        len: 2 * pi * 3 / 4 * .25,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -100,7 +104,7 @@ class App extends React.Component {
         radius: 2 / 4,
         start: .25,
         end: .75,
-        len: 2 * pi * 2/4 * .5,
+        len: 2 * pi * 2 / 4 * .5,
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -118,7 +122,7 @@ class App extends React.Component {
         start: [0, 0],
         end: [0, 2 / 3],
         lenSq: (2 / 3) ** 2,
-        len: (2/3),
+        len: (2 / 3),
         lineWidth: 1,
         progress: [[0, 0]],
       }, {
@@ -138,15 +142,31 @@ class App extends React.Component {
       previewCircle: null,
       builderOuterAnchors: 0,
       builderInnerAnchors: 0,
-      drawSpeed: .01,
+      drawSpeed: .01 * 1000,
+      completedCircles: [],
+      circleIndex: 0,
+      showBuilder: true,
     }
+    // Temp for testing...
+    state = this.completeCircle(state, this.createCircle(state, true));
     this.newSegments = tmCircle.segments.map(() => []);
     this.forceRedraw = true;
     return state;
   }
 
+  completeCircle = (state, circle) => {
+    circle.index = state.circleIndex++
+    circle.done = true;
+    state.completedCircles.push(circle);
+    this.completedCanvases[circle.index] = React.createRef();
+    this.undrawnCompleted.set(circle.index, circle);
+
+    return state;
+  }
+
   reset = () => {
     this.confirmingReset = false;
+    this.resetLocalVars();
     let state = this.getInitState();
     this.setState(state, this.resizeCanvas);
   }
@@ -159,13 +179,21 @@ class App extends React.Component {
       );
     }
 
+    for (const [index, circle] of this.undrawnCompleted) {
+      console.log('index', index)
+      this.completedCanvases[index].current.width = completedSize
+      this.completedCanvases[index].current.height = completedSize
+      this.drawCanvas(this.completedCanvases[index], circle, this.completedTransform, true)
+    };
+    this.undrawnCompleted = new Map();
+
     this.forceRedraw = false;
     this.newSegments = s.tmCircle.segments.map(() => []);
   }
 
   startDraw = () => {
     let tmCircle = this.clearCircle(this.state.previewCircle);
-    this.setState({tmCircle})
+    this.setState({ tmCircle })
     this.forceRedraw = true;
     this.newSegments = tmCircle.segments.map(() => []);
   }
@@ -180,62 +208,78 @@ class App extends React.Component {
         center: [s.center[0], s.center[1]],
       });
     });
-    return {segments: segs}
+    return { segments: segs }
   }
 
   render() {
     let s = this.state;
 
-
     return (
       <div id="verticalFlex">
         <div id="flex">
-          <div className="panel" id="leftestPanel">
+          <div className="panel leftPanel">
           </div>
-          <div className="panel" id="leftPanel">
+          <div className="panel leftPanel narrow">
             <h3>Transmutation Circles</h3>
-            <h4>Builder</h4>
-            <div>
-              Outer Anchors
-              <input type="range" min="0" max="6" value={this.state.builderOuterAnchors}
-                onChange={(e) => {
-                  this.setState({ builderOuterAnchors: e.target.value }, this.createPreview);
-                  e.preventDefault();
-                }}
-              ></input>
-            </div>
-            <div>
-              Inner Anchors
-              <input type="range" min="0" max="6" value={this.state.builderInnerAnchors}
-                onChange={(e) => {
-                  this.setState({ builderInnerAnchors: e.target.value }, this.createPreview);
-                  e.preventDefault();
-                }}
-              ></input>
-            </div>
-            <div>
-              <canvas id="previewCanvas"
-                ref={this.previewCanvas}
-              ></canvas>
-            </div>
-            <div>
-            <button 
-                  onClick={this.startDraw}
-                >Let's Draw It</button> 
+
+            <h4>Selector {!s.showBuilder && <span onClick={() => this.setState({ showBuilder: true }, ()=>{this.resizePreview(); this.createPreview()})}>Builder &gt;</span>}</h4>
+            <div id="#selector">
+              <div>
+                {s.completedCircles.map((c) => {
+                  return <canvas ref={this.completedCanvases[c.index]} key={c.index} className="completedCircle"></canvas>
+                }, this)}
+              </div>
             </div>
           </div>
           <div className="panel" id="mainPanel">
-            <canvas
-              ref={this.canvas}
-              onMouseMove={this.mouseMove}
-              onMouseDown={this.mouseMove}
-              onMouseUp={this.mouseMove}
-              onMouseLeave={this.mouseMove}
-              onTouchStart={this.touchMove}
-              onTouchMove={this.touchMove}
-              onTouchEnd={this.touchMove}
-              onTouchCancel={this.touchMove}
-            ></canvas>
+            {s.showBuilder && <div id="builderPanel">
+              <div id="closeBuilder" onClick={() => { this.setState({ showBuilder: false }) }}>X</div>
+              <h4>Builder</h4>
+              <div id="builder">
+                <div>
+                  Outer Anchors
+                  <input type="range" min="0" max="6" value={this.state.builderOuterAnchors}
+                    onChange={(e) => {
+                      this.setState({ builderOuterAnchors: e.target.value }, this.createPreview);
+                      e.preventDefault();
+                    }}
+                  ></input>
+                </div>
+                <div>
+                  Inner Anchors
+                  <input type="range" min="0" max="6" value={this.state.builderInnerAnchors}
+                    onChange={(e) => {
+                      this.setState({ builderInnerAnchors: e.target.value }, this.createPreview);
+                      e.preventDefault();
+                    }}
+                  ></input>
+                </div>
+                <div>
+                  <canvas id="previewCanvas"
+                    ref={this.previewCanvas}
+                  ></canvas>
+                </div>
+                <div>
+                  <button
+                    onClick={this.startDraw}
+                  >Let's Draw It</button>
+                </div>
+              </div>
+            </div>
+            }
+            <div id="drawPanel">
+              <canvas
+                ref={this.canvas}
+                onMouseMove={this.mouseMove}
+                onMouseDown={this.mouseMove}
+                onMouseUp={this.mouseMove}
+                onMouseLeave={this.mouseMove}
+                onTouchStart={this.touchMove}
+                onTouchMove={this.touchMove}
+                onTouchEnd={this.touchMove}
+                onTouchCancel={this.touchMove}
+              ></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -246,7 +290,9 @@ class App extends React.Component {
     let s = this.state;
     let previewCircle = this.createCircle(s, true);
     const previewCanvas = this.previewCanvas;
-    this.drawCanvas(previewCanvas, previewCircle, this.previewTransform, true)
+    if (this.previewCanvas.current !== null) {
+      this.drawCanvas(previewCanvas, previewCircle, this.previewTransform, true)
+    }
     this.setState({ previewCircle })
   }
 
@@ -276,7 +322,7 @@ class App extends React.Component {
     }
     for (let i = 0; i < state.builderOuterAnchors; i++) {
       let curA = segments[i];
-      let nextA = segments[(i+1) % state.builderOuterAnchors];
+      let nextA = segments[(i + 1) % state.builderOuterAnchors];
       let tempSeg = {
         center: [0, 0],
         radius: mainRadius,
@@ -318,7 +364,7 @@ class App extends React.Component {
       segment.len = segment.radius * 2 * pi * (segment.end - segment.start);
       segment.done = done;
     });
-    return { segments }
+    return { segments, index: this.circleIndex++, done: false }
   }
 
   drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
@@ -424,10 +470,12 @@ class App extends React.Component {
 
     this.setState(state => {
       let s = state;
+      let allDone = true;
       for (const [segIndex, seg] of s.tmCircle.segments.entries()) {
         if (seg.done) {
           continue;
         }
+        allDone = false;
         let newSegs = [];
         let progs = seg.progress;
 
@@ -520,7 +568,7 @@ class App extends React.Component {
               this.newSegments[segIndex].push(prog)
             }
           });
-          
+
         });
         if (progs[0][1] >= 1) {
           progs[0][1] = 1;
@@ -529,6 +577,10 @@ class App extends React.Component {
           this.forceRedraw = true;
         }
 
+      }
+      if (allDone && !s.tmCircle.done) {
+        s.tmCircle.done = true
+        this.completeCircle(s, s.tmCircle)
       }
       return { tmCircle: s.tmCircle };
 
@@ -621,6 +673,17 @@ class App extends React.Component {
       context.setTransform(this.transform);
     }
 
+    this.resizePreview();
+
+    if (this.state.paused) {
+      this.forceUpdate();
+    }
+    this.forceRedraw = true;
+    this.createPreview();
+  };
+
+
+  resizePreview = () => {
     if (this.previewCanvas.current !== null) {
       let width = this.previewCanvas.current.getBoundingClientRect().width;
       this.previewCanvas.current.style.height = width + 'px';
@@ -633,14 +696,7 @@ class App extends React.Component {
       this.previewInverseTransform = this.previewTransform.inverse();
       context.setTransform(this.previewTransform);
     }
-
-    if (this.state.paused) {
-      this.forceUpdate();
-    }
-    this.forceRedraw = true;
-    this.createPreview();
-  };
-
+  }
   componentDidMount() {
     window.addEventListener("beforeunload", this.save);
     window.addEventListener("resize", this.resizeCanvas);
@@ -817,7 +873,7 @@ function intersectCircles(segMain, segAlt, dir) {
   let radical = Math.sqrt(b * b - 4 * a * c);
   let y1 = (- b + radical) / (2 * a);
   let y2 = (- b - radical) / (2 * a);
-  let xf = (y) => {return (ar * ar - mr * mr - ay * ay + 2 * ay * y - ax * ax) / (-2 * ax)}
+  let xf = (y) => { return (ar * ar - mr * mr - ay * ay + 2 * ay * y - ax * ax) / (-2 * ax) }
   let [x1, x2] = [xf(y1), xf(y2)];
   if (Math.sign(x1) === Math.sign(x2)) {
     let mul = (Boolean(Math.sign(x1) > 0) !== (dir === 'cw') ? -1 : 1);
@@ -827,7 +883,7 @@ function intersectCircles(segMain, segAlt, dir) {
     let mul = (Boolean(Math.sign(y1) > 0) !== (dir === 'cw') ? -1 : 1);
     return mul * x1 < mul * x2 ? [x1, y1] : [x2, y2];
   }
-  throw new Error('too far' + [x1,y1, x2, y2])
+  throw new Error('too far' + [x1, y1, x2, y2])
 }
 
 function overlaps(s, t) {
