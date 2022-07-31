@@ -7,6 +7,8 @@
 * Circle selector
 * Split power among circles????
 * You know, resources
+* Animate circle creation
+* Animate and fix builder button
 
 # Getting Started with Create React App
 
