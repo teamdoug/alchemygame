@@ -9,6 +9,11 @@
 * You know, resources
 * Animate circle creation
 * Animate and fix builder button
+* Delete circles
+* Mouseover circle info
+### Mobile
+* Ability to view info about circles
+* View info about circles for mobile
 
 # Getting Started with Create React App
 

@@ -21,16 +21,17 @@ class App extends React.Component {
     this.canvas = React.createRef();
     this.previewCanvas = React.createRef();
     this.width = 800;
-    const storedState = localStorage.getItem("heartosisIGJ5Save");
-    if (storedState) {
-      this.state = JSON.parse(storedState);
-    } else {
-      this.state = this.getInitState();
-    }
     this.height = 400;
     this.minAxis = 400;
     this.baseLineWidth = .01;
     this.resetLocalVars();
+    const storedState = localStorage.getItem("heartosisIGJ5Save");
+    if (storedState && !debug) {
+      this.state = JSON.parse(storedState);
+    } else {
+      this.state = this.getInitState();
+      this.reset();
+    }
   }
 
   resetLocalVars = () => {
@@ -146,6 +147,18 @@ class App extends React.Component {
       completedCircles: [],
       circleIndex: 0,
       showBuilder: true,
+      res: {
+        idea: 0,
+        earth: 0,
+        water: 0,
+        plant: 0,
+        animal: 0,
+        dog: 0,
+        heaven: 0,
+        light: 0,
+        air: 0,
+        star: 0,
+      },
     }
     // Temp for testing...
     state = this.completeCircle(state, this.createCircle(state, true));
@@ -193,7 +206,7 @@ class App extends React.Component {
 
   startDraw = () => {
     let tmCircle = this.clearCircle(this.state.previewCircle);
-    this.setState({ tmCircle })
+    this.setState({ tmCircle, showBuilder: false })
     this.forceRedraw = true;
     this.newSegments = tmCircle.segments.map(() => []);
   }
@@ -218,11 +231,13 @@ class App extends React.Component {
       <div id="verticalFlex">
         <div id="flex">
           <div className="panel leftPanel">
+            <div>Ideas: {s.res.idea}</div>
+            <div>Earth: {s.res.earth}</div>
           </div>
           <div className="panel leftPanel narrow">
             <h3>Transmutation Circles</h3>
 
-            <h4>Selector {!s.showBuilder && <span onClick={() => this.setState({ showBuilder: true }, ()=>{this.resizePreview(); this.createPreview()})}>Builder &gt;</span>}</h4>
+            <h4>Selector {!s.showBuilder && <span onClick={() => this.setState({ showBuilder: true }, () => { this.resizePreview(); this.createPreview() })}>Builder &gt;</span>}</h4>
             <div id="#selector">
               <div>
                 {s.completedCircles.map((c) => {
@@ -259,7 +274,7 @@ class App extends React.Component {
                     ref={this.previewCanvas}
                   ></canvas>
                 </div>
-                <div>
+                <div style={{ 'text-align': 'right' }}>
                   <button
                     onClick={this.startDraw}
                   >Let's Draw It</button>
@@ -471,6 +486,7 @@ class App extends React.Component {
     this.setState(state => {
       let s = state;
       let allDone = true;
+      this.updateResources(s);
       for (const [segIndex, seg] of s.tmCircle.segments.entries()) {
         if (seg.done) {
           continue;
@@ -588,7 +604,21 @@ class App extends React.Component {
 
   }
 
+  updateResources = (s) => {
+    s.res.earth = this.addResource(s.res.earth, .001, 1)
+  }
 
+  addResource = (resource, amount, sourceAmount) => {
+    let mul = 1
+    if (resource > .5) {
+      mul = 1 - Math.sin((resource - .5)* pi)
+    }
+    if (sourceAmount < .5) {
+      mul *= 1-Math.cos(pi*sourceAmount)
+    }
+    return resource + mul * amount
+    
+  }
 
   mouseMove = (e) => {
 
@@ -701,9 +731,6 @@ class App extends React.Component {
     window.addEventListener("beforeunload", this.save);
     window.addEventListener("resize", this.resizeCanvas);
     this.resizeCanvas();
-    if (debug) {
-      this.reset();
-    }
     this.renderID = window.requestAnimationFrame(this.gameLoop);
   }
 
