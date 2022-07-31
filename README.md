@@ -11,6 +11,12 @@
 * Animate and fix builder button
 * Delete circles
 * Mouseover circle info
+* Costs to make circles
+* Circles buff their own type
+* Color circles by what they make
+* Goal is to fill up everything (improve diminishing returns??)
+* Improve diminishing returns by making circles of same type or by improving circles
+* Dog gives hints and says useless things (haha)
 ### Mobile
 * Ability to view info about circles
 * View info about circles for mobile

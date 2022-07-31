@@ -8,7 +8,66 @@ const pi = Math.PI;
 const progressColor = '#333';
 const doneColor = '#FFF';
 const completedSize = 100;
+const resources = {
+  idea: {
+    color: '#7008a8',
+    ideaEfficiency: 1,
+  }, earth: {
+    color: '#5c4219',
+    ideaEfficiency: .01,
+    level: 1,
+  }, water: {
+    color: '#1144bd',
+    ideaEfficiency: .02,
+    level: 2,
+  }, plants: {
+    color: '#119915',
+    ideaEfficiency: .03,
+    level: 3,
+  }, animals: {
+    color: '#a38f79',
+    ideaEfficiency: .05,
+    level: 4,
+  }, dogs: {
+    color: '#75716d',
+    ideaEfficiency: .1,
+    level: 5,
+  }, heaven: {
+    color: '#FFD700',
+    ideaEfficiency: .02,
+    level: 1,
+  }, light: {
+    color: '#fff069',
+    ideaEfficiency: .03,
+    level: 2,
+  }, air: {
+    color: '#87bbe6',
+    ideaEfficiency: .05,
+    level: 3,
+  }, clouds: {
+    color: '#bec1c2',
+    ideaEfficiency: .08,
+    level: 4,
+  }, stars: {
+    color: '#ffffff',
+    ideaEfficiency: .13,
+    level: 5,
+  }
+}
 
+function Resource(props) {
+  return <div className="resource">
+    <div
+      style={{
+        width: props.percent + "%",
+        postition: "absolute",
+        top: 0,
+        left: 0,
+        height: '100%',
+        backgroundColor: props.color,
+      }}
+    ></div></div>
+}
 
 class App extends React.Component {
   constructor(props) {
@@ -151,13 +210,14 @@ class App extends React.Component {
         idea: 0,
         earth: 0,
         water: 0,
-        plant: 0,
-        animal: 0,
-        dog: 0,
+        plants: 0,
+        animals: 0,
+        dogs: 0,
         heaven: 0,
         light: 0,
         air: 0,
-        star: 0,
+        clouds: 0,
+        stars: 0,
       },
     }
     // Temp for testing...
@@ -231,8 +291,14 @@ class App extends React.Component {
       <div id="verticalFlex">
         <div id="flex">
           <div className="panel leftPanel">
-            <div>Ideas: {s.res.idea}</div>
-            <div>Earth: {s.res.earth}</div>
+            <table>
+              <tbody>
+              {Object.entries(resources).map((kv) => {
+                let [name, info] = kv;
+                return <tr key={name}><td>{name.charAt(0).toUpperCase() + name.slice(1)}</td><td style={{width: '100%'}}><Resource color={info.color} percent={100*s.res[name]}></Resource></td></tr>
+              })}
+              </tbody>
+            </table>
           </div>
           <div className="panel leftPanel narrow">
             <h3>Transmutation Circles</h3>
@@ -274,7 +340,7 @@ class App extends React.Component {
                     ref={this.previewCanvas}
                   ></canvas>
                 </div>
-                <div style={{ 'text-align': 'right' }}>
+                <div style={{ 'textAlign': 'right' }}>
                   <button
                     onClick={this.startDraw}
                   >Let's Draw It</button>
@@ -330,7 +396,7 @@ class App extends React.Component {
       segments.push({
         type: 'arc',
         center: [mainRadius * Math.cos(rad), mainRadius * Math.sin(rad)],
-        radius: .1,
+        radius: .15,
         start: 0,
         end: 1,
       });
@@ -355,14 +421,14 @@ class App extends React.Component {
       })
     }
     spacing = 1.0 / state.builderInnerAnchors;
-    let innerRadius = 0.3;
+    let innerRadius = 0.4;
     for (let i = 0; i < state.builderInnerAnchors; i++) {
       let rad = normalizedToRadians(.5 + spacing * i);
 
       segments.push({
         type: 'arc',
         center: [innerRadius * Math.cos(rad), innerRadius * Math.sin(rad)],
-        radius: .1,
+        radius: .15,
         start: 0,
         end: 1,
       });
@@ -610,14 +676,15 @@ class App extends React.Component {
 
   addResource = (resource, amount, sourceAmount) => {
     let mul = 1
+    // (2-2x)^(1/3, 1/2, 1, 2, 3)
     if (resource > .5) {
-      mul = 1 - Math.sin((resource - .5)* pi)
+      mul = (2 - 2 * resource) ** 3
     }
     if (sourceAmount < .5) {
-      mul *= 1-Math.cos(pi*sourceAmount)
+      mul *= 1 - Math.cos(pi * sourceAmount)
     }
     return resource + mul * amount
-    
+
   }
 
   mouseMove = (e) => {
