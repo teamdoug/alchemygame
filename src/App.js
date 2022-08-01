@@ -843,7 +843,7 @@ class App extends React.Component {
       }
       //console.log('check', type, ideaCost, s.prog[type])
       if (!ideaCost) {
-        this.completeResearch(s)
+        this.completeResearch(s, type)
         continue
       }
       if (ideaCost && s.curResearch === null) {
@@ -867,19 +867,23 @@ class App extends React.Component {
     s.researchOpts = {}
   }
 
-  completeResearch = (s) => {
-    if (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost)) {
+  completeResearch = (s, type) => {
+    if (!type && (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost))) {
       return;
     }
-    let type = s.curResearch.type
+    if (!type) {
+      type = s.curResearch.type
+    }
     let res = PROG[type][s.prog[type]]
     if (res.unlockSlider) {
       s.sliderUnlocks[res.unlockSlider[0]] = res.unlockSlider[1];
     }
-    s.curResearch = null;
-    s.res.ideas.amount = 0;
+    if (s.curResearch) {
+      s.curResearch = null;
+      s.res.ideas.amount = 0;
+      s.researchComplete = false
+    }
     s.prog[type] += 1;
-    s.researchComplete = false
   }
 
   update = (delta, debugFrame) => {
