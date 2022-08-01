@@ -29,7 +29,7 @@ const resources = {
     ideaEfficiency: .05,
     level: 4,
   }, dogs: {
-    color: '#75716d',
+    color: '#000000',
     ideaEfficiency: .1,
     level: 5,
   }, heaven: {
@@ -37,7 +37,7 @@ const resources = {
     ideaEfficiency: .02,
     level: 1,
   }, light: {
-    color: '#fff069',
+    color: '#ffff89',
     ideaEfficiency: .03,
     level: 2,
   }, air: {
@@ -201,7 +201,7 @@ class App extends React.Component {
         ...typeDetails,
       });
     });
-    return { segments: segs, params: circle.params }
+    return { segments: segs, params: circle.params, insideStart: circle.insideStart }
   }
 
   render() {
@@ -249,7 +249,7 @@ class App extends React.Component {
                 </div>
                 <div>
                   Consume
-                  <input type="range" min="1" max="6" value={this.state.builder.source}
+                  <input type="range" min="1" max="5" value={this.state.builder.source}
                     onChange={(e) => {
                       this.setState({ builder: { ...this.state.builder, source: parseInt(e.target.value) } }, this.createPreview);
                       e.preventDefault();
@@ -258,7 +258,7 @@ class App extends React.Component {
                 </div>
                 <div>
                   Create
-                  <input type="range" min="0" max="6" value={this.state.builder.dest}
+                  <input type="range" min="0" max="5" value={this.state.builder.dest}
                     onChange={(e) => {
                       this.setState({ builder: { ...this.state.builder, dest: parseInt(e.target.value) } }, this.createPreview);
                       e.preventDefault();
@@ -453,6 +453,7 @@ class App extends React.Component {
       }
     }
 
+    let insideStart = segments.length;
     let innerRadius = 0.4;
     if (state.builder.heavenly == 1) {
       segments.push({
@@ -557,10 +558,10 @@ class App extends React.Component {
     }
 
 
-    return this.circleFromSegments(segments, done, { ...state.builder });
+    return this.circleFromSegments(segments, done, insideStart, { ...state.builder });
   }
 
-  circleFromSegments = (segments, done, params) => {
+  circleFromSegments = (segments, done, insideStart, params) => {
     segments.forEach((segment) => {
       segment.progress = [[0, (done ? 1 : 0)]];
       if (!segment.lineWidth) {
@@ -571,7 +572,7 @@ class App extends React.Component {
       }
       segment.done = done;
     });
-    return { segments, index: this.circleIndex++, done: false, params: params }
+    return { segments, index: this.circleIndex++, done, params, insideStart }
   }
 
   drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
@@ -588,8 +589,15 @@ class App extends React.Component {
     ctx.setTransform(transform);
     ctx.lineCap = "round";
     let planPaths = [];
-    let donePaths = [];
+    let insideDonePaths = [];
+    let outsideDonePaths = [];
     tmCircle.segments.forEach((seg, segIndex) => {
+      let donePaths = [];
+      if (segIndex < tmCircle.insideStart) {
+        donePaths = outsideDonePaths;
+      } else {
+        donePaths = insideDonePaths;
+      }
       if (forceRedraw) {
         ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
         if (seg.type === 'arc') {
@@ -661,8 +669,12 @@ class App extends React.Component {
           });
         }
       }
-      ctx.strokeStyle = doneColor;
-      for (const donePath of donePaths) {
+      ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.source]].color;
+      for (const donePath of outsideDonePaths) {
+        ctx.stroke(donePath);
+      }
+      ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.dest]].color;
+      for (const donePath of insideDonePaths) {
         ctx.stroke(donePath);
       }
 
