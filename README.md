@@ -20,10 +20,19 @@
 * glow and round to 1 when resource > 99.9(9?)%
 * better glyphs at max pressure/efficiency
 * hide pressure for generating ideas
+* flash to indicate unlocks
 ### Mobile
 * Ability to view info about circles
 * View info about circles for mobile
 * Drawing less finicky. Have bigger slop range for segments already drawing?
+* The whole dang layout
+
+## Thoughts
+clouds -> water
+plants + (water + light) -> plants
+animals + (water + plants) -> animals
+dogs + (animals) -> dogs
+
 
 # Getting Started with Create React App
 

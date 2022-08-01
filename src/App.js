@@ -59,6 +59,83 @@ const resMap = {
   1: ['ideas', 'heaven', 'light', 'air', 'clouds', 'stars'],
 }
 
+const PROG = {
+  'dest': [{
+    ideaCost: 1,
+    triggerResource: 'ideas',
+    unlockSlider: ['dest', 1],
+  }, {
+    ideaCost: 1.5,
+    unlockSlider: ['dest', 2],
+  }, {
+    ideaCost: 2,
+    triggerResource: 'water',
+    unlockSlider: ['dest', 3],
+  }, {
+    ideaCost: 4,
+    triggerResource: 'plants',
+    unlockSlider: ['dest', 4],
+  }, {
+    ideaCost: 8,
+    triggerResource: 'animals',
+    unlockSlider: ['dest', 5],
+  }, {
+    triggerResource: 'end',
+  }],
+  'source': [{
+    triggerResource: 'water',
+    unlockSlider: ['source', 2],
+  }, {
+    triggerResource: 'plants',
+    unlockSlider: ['source', 3],
+  }, {
+    triggerResource: 'animals',
+    unlockSlider: ['source', 4],
+  }, {
+    triggerResource: 'dogs',
+    unlockSlider: ['source', 5],
+  }, {
+    triggerResource: 'end',
+  }],
+  'efficiency': [{
+    ideaCost: 4,
+    triggerResource: 'water',
+    unlockSlider: ['efficiency', 1],
+  }, {
+    ideaCost: 6,
+    triggerResource: 'plants',
+    unlockSlider: ['efficiency', 2],
+  }, {
+    ideaCost: 8,
+    triggerResource: 'animals',
+    unlockSlider: ['efficiency', 3],
+  }, {
+    ideaCost: 12,
+    triggerResource: 'dogs',
+    unlockSlider: ['efficiency', 4],
+  }, {
+    triggerResource: 'end',
+  }],
+  'pressure': [{
+    ideaCost: 6,
+    triggerResource: 'plants',
+    unlockSlider: ['pressure', 1],
+  }, {
+    ideaCost: 8,
+    triggerResource: 'animals',
+    unlockSlider: ['pressure', 2],
+  }, {
+    ideaCost: 16,
+    triggerResource: 'dogs',
+    unlockSlider: ['pressure', 3],
+  }, {
+    ideaCost: 20,
+    unlockSlider: ['pressure', 4],
+  }, {
+    triggerResource: 'end',
+  }],
+}
+
 function Resource(props) {
   return <div className="resource">
     <div
@@ -119,6 +196,22 @@ class App extends React.Component {
         efficiency: 0,
         pressure: 0,
       },
+      sliderUnlocks: {
+        source: 1,
+        dest: 0,
+        efficiency: 0,
+        pressure: 0,
+      },
+      curResearch: null,
+      researchComplete: false,
+      researchOpts: {},
+      gameDone: false,
+      prog: {
+        'dest': 0,
+        'source': 0,
+        'efficiency': 0,
+        'pressure': 0,
+      },
       drawSpeed: .01 * 1000,
       completedCircles: [],
       circleIndex: 0,
@@ -126,13 +219,16 @@ class App extends React.Component {
       res: Object.keys(resources).reduce((result, r) => {
         result[r] = {
           amount: 0,
-          visible: true, // TODO back to false
+          visible: false,
+          name: r,
+          cap: 1,
         }
         return result
       }, {}),
     }
     state.res.earth.visible = true
-    state.res.ideas.visible = true
+    // Used to end prog chains by never being visible
+    state.res.end = { visible: false }
     state.tmCircle = this.createCircle(state, false);
     this.newSegments = state.tmCircle.segments.map(() => []);
     this.forceRedraw = true;
@@ -209,12 +305,37 @@ class App extends React.Component {
       <div id="verticalFlex">
         <div id="flex">
           <div className="panel leftPanel">
+            <div>
+              {s.gameDone && <span>You win!</span>}
+              <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
+              {s.researchComplete &&
+                <button onClick={() => {
+                  this.setState((s) => { this.completeResearch(s) });
+                }}>Complete Research</button>}
+              {'source' in s.researchOpts && <button onClick={() => {
+                this.setState((s) => {this.startResearch(s, 'source')})
+              }}>Source</button>}
+              {'dest' in s.researchOpts && <button onClick={() => {
+                this.setState((s) => {this.startResearch(s, 'dest')})
+              }}>Dest</button>}
+              {'efficiency' in s.researchOpts && <button onClick={() => {
+                this.setState((s) => {this.startResearch(s, 'efficiency')})
+              }}>Efficiency</button>}
+              {'pressure' in s.researchOpts && <button onClick={() => {
+                this.setState((s) => {this.startResearch(s, 'pressure')})
+              }}>Pressure</button>}
+            </div>
             <table>
               <tbody>
                 {Object.keys(resources).filter((name) => {
                   return s.res[name].visible
                 }).map((name) => {
-                  return <tr key={name}><td>{name.charAt(0).toUpperCase() + name.slice(1)}</td><td style={{ width: '100%' }}><Resource name={name} percent={100 * s.res[name].amount}></Resource></td></tr>
+                  return (<tr key={name}>
+                    <td>{name.charAt(0).toUpperCase() + name.slice(1)}</td>
+                    <td style={{ width: '100%' }}>
+                      <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap}></Resource>
+                    </td>
+                  </tr>)
                 })}
               </tbody>
             </table>
@@ -233,54 +354,59 @@ class App extends React.Component {
           </div>
           <div className="panel" id="mainPanel">
             {s.showBuilder && <div id="builderPanel">
-              <div id="closeBuilder" onClick={() => { this.setState({ showBuilder: false }) }}>X</div>
+              <div id="closeBuilder" onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>X</div>
               <h4>Builder</h4>
               <div id="builder">
-                <div>
+                {/*<div>
                   Heavenly
                   <input type="range" min="0" max="1" value={this.state.builder.heavenly}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, heavenly: parseInt(e.target.value) } }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, heavenly: parseInt(e.target.value) } },
+                      this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
-                </div>
-                <div>
+                  </div>*/}
+                {s.sliderUnlocks.source >= 2 && <div>
                   Consume
-                  <input type="range" min="1" max="5" value={this.state.builder.source}
+                  <input type="range" min="1" max={this.state.sliderUnlocks.source} value={this.state.builder.source}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, source: parseInt(e.target.value) } }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, source: parseInt(e.target.value) } },
+                        this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
-                </div>
-                <div>
+                </div>}
+                {s.sliderUnlocks.dest >= 1 && <div>
                   Create
-                  <input type="range" min="0" max="5" value={this.state.builder.dest}
+                  <input type="range" min="0" max={this.state.sliderUnlocks.dest} value={this.state.builder.dest}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, dest: parseInt(e.target.value) } }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, dest: parseInt(e.target.value) } },
+                        this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
-                </div>
-                <div>
+                </div>}
+                {s.sliderUnlocks.efficiency >= 1 && <div>
                   Efficiency
-                  <input type="range" min="0" max="4" value={this.state.builder.efficiency}
+                  <input type="range" min="0" max={this.state.sliderUnlocks.efficiency} value={this.state.builder.efficiency}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, efficiency: parseInt(e.target.value) } }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, efficiency: parseInt(e.target.value) } },
+                        this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
-                </div>
-                <div>
+                </div>}
+                {s.sliderUnlocks.pressure >= 1 && <div>
                   Pressure
-                  <input type="range" min="0" max="4" value={this.state.builder.pressure}
+                  <input type="range" min="0" max={this.state.sliderUnlocks.pressure} value={this.state.builder.pressure}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, pressure: parseInt(e.target.value) } }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, pressure: parseInt(e.target.value) } },
+                        this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
-                </div>
+                </div>}
                 <div>
                   <canvas id="previewCanvas"
                     ref={this.previewCanvas}
@@ -688,6 +814,73 @@ class App extends React.Component {
     });
   }
 
+  checkProg = (s) => {
+    let gameDone = true;
+    for (const res of Object.values(resMap[0])) {
+      if (res == 'ideas') {
+        continue
+      }
+      if (s.res[res].amount !== s.res[res].cap) {
+        gameDone = false
+        break
+      }
+    }
+    if (gameDone) {
+      s.gameDone = true;
+    }
+    if (s.curResearch) {
+      if (s.res.ideas.amount >= s.curResearch.ideaCost) {
+        s.researchComplete = true
+      }
+    }
+    s.researchOpts = {}
+    for (const type of Object.keys(PROG)) {
+      let sProg = s.prog[type]
+      let next = PROG[type][sProg]
+      let ideaCost = next.ideaCost;
+      if (s.res[next.triggerResource] && !s.res[next.triggerResource].visible) {
+        continue
+      }
+      //console.log('check', type, ideaCost, s.prog[type])
+      if (!ideaCost) {
+        this.completeResearch(s)
+        continue
+      }
+      if (ideaCost && s.curResearch === null) {
+        s.researchOpts[type] = true;
+      }
+    }
+    if (Object.keys(s.researchOpts).length == 1) {
+      this.startResearch(s, Object.keys(s.researchOpts)[0])
+    }
+  }
+
+  startResearch = (s, type) => {
+    if (s.curResearch !== null) {
+      return
+    }
+    let sProg = s.prog[type]
+    let next = PROG[type][sProg]
+    let ideaCost = next.ideaCost;
+    s.curResearch = { type, ideaCost }
+    s.res.ideas.cap = ideaCost;
+    s.researchOpts = {}
+  }
+
+  completeResearch = (s) => {
+    if (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost)) {
+      return;
+    }
+    let type = s.curResearch.type
+    let res = PROG[type][s.prog[type]]
+    if (res.unlockSlider) {
+      s.sliderUnlocks[res.unlockSlider[0]] = res.unlockSlider[1];
+    }
+    s.curResearch = null;
+    s.res.ideas.amount = 0;
+    s.prog[type] += 1;
+    s.researchComplete = false
+  }
 
   update = (delta, debugFrame) => {
     let relDelta = delta / 1000;
@@ -696,8 +889,9 @@ class App extends React.Component {
 
     this.setState(state => {
       let s = state;
-      let allDone = true;
       this.updateResources(s);
+      this.checkProg(s);
+      let allDone = true;
       for (const [segIndex, seg] of s.tmCircle.segments.entries()) {
         if (seg.done) {
           continue;
@@ -821,31 +1015,36 @@ class App extends React.Component {
     let [_, gain] = this.calcResource(s.res.earth, baseIncome, 1, 0, 1)
     s.res.earth.amount += gain
     for (const c of s.completedCircles) {
-      let [cost, gain] = this.calcResource(s.res[destRes(c)], baseConsumption, s.res[sourceRes(c)].amount, c.params.pressure, c.params.efficiency)
+      let [sRes, dRes] = [sourceRes(c), destRes(c)];
+      let [cost, gain] = this.calcResource(s.res[dRes], baseConsumption, s.res[sRes].amount, c.params.pressure, c.params.efficiency)
       if (isNaN(gain) || isNaN(cost)) {
-      console.log('create ', destRes(c), ' +', gain, ', ', sourceRes(c), ' -', cost)
-      throw new Error('nan')
+        console.log('create ', dRes, ' +', gain, ', ', sRes, ' -', cost)
+        throw new Error('nan')
       }
-      s.res[destRes(c)].amount += gain
-      s.res[sourceRes(c)].amount -= cost
+      s.res[dRes].amount += gain
+      if (!s.res[dRes].visible) {
+        s.res[dRes].visible = true
+      }
+      s.res[sRes].amount -= cost
     }
   }
 
   calcResource = (resource, amount, sourceAmount, pressure, efficiency) => {
-    if (resource.amount > .9999) {
+    if (resource.amount > .9999 * resource.cap) {
+      resource.amount = resource.cap;
       return [0, 0];
     }
     let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
-    if (pressure < 5 && resource.amount > .5) {
-      let exp = [3, 2, 1, 0.5, 1/3][pressure];
+    if (resource.name != 'ideas' && resource.amount > .5) {
+      let exp = [3, 2, 1, 0.5, 1 / 3][pressure];
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
     if (sourceAmount < .5) {
       sourceMul = 1 - Math.cos(pi * sourceAmount);
     }
-    efficiency = [.1, .2, .3, .5, 1][efficiency] * 10
+    efficiency = [.1, .2, .3, .5, 1][efficiency] * 100
     return [sourceMul * amount, destMul * sourceMul * amount * efficiency]
   }
 
