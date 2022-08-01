@@ -17,9 +17,12 @@
 * Goal is to fill up everything (improve diminishing returns??)
 * Improve diminishing returns by making circles of same type or by improving circles
 * Dog gives hints and says useless things (haha)
+* glow and round to 1 when resource > 99.9(9?)%
+* better glyphs at max pressure/efficiency
 ### Mobile
 * Ability to view info about circles
 * View info about circles for mobile
+* Drawing less finicky. Have bigger slop range for segments already drawing?
 
 # Getting Started with Create React App
 

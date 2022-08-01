@@ -9,7 +9,7 @@ const progressColor = '#333';
 const doneColor = '#FFF';
 const completedSize = 100;
 const resources = {
-  idea: {
+  ideas: {
     color: '#7008a8',
     ideaEfficiency: 1,
   }, earth: {
@@ -64,7 +64,7 @@ function Resource(props) {
         top: 0,
         left: 0,
         height: '100%',
-        backgroundColor: props.color,
+        backgroundColor: resources[props.name].color,
       }}
     ></div></div>
 }
@@ -199,26 +199,30 @@ class App extends React.Component {
       paused: false,
       tmCircle: tmCircle,
       previewCircle: null,
-      builderOuterAnchors: 0,
-      builderInnerAnchors: 0,
+      builder: {
+        heavenly: 0,
+        source: 1,
+        dest: 0,
+        efficiency: 0,
+        pressure: 0,
+      },
       drawSpeed: .01 * 1000,
       completedCircles: [],
       circleIndex: 0,
       showBuilder: true,
-      res: {
-        idea: 0,
-        earth: 0,
-        water: 0,
-        plants: 0,
-        animals: 0,
-        dogs: 0,
-        heaven: 0,
-        light: 0,
-        air: 0,
-        clouds: 0,
-        stars: 0,
-      },
+      res: Object.keys(resources).reduce((result, r) => {
+        result[r] = {
+          amount: 0,
+          visible: false,
+          unlocked: false,
+        }
+        return result
+      }, {}),
     }
+    state.res.earth.unlocked = true
+    state.res.earth.visible = true
+    state.res.ideas.unlocked = true
+    state.res.ideas.visible = true
     // Temp for testing...
     state = this.completeCircle(state, this.createCircle(state, true));
     this.newSegments = tmCircle.segments.map(() => []);
@@ -241,7 +245,7 @@ class App extends React.Component {
     this.resetLocalVars();
     let state = this.getInitState();
     this.setState(state, this.resizeCanvas);
- 
+
   }
 
   componentDidUpdate = () => {
@@ -273,14 +277,20 @@ class App extends React.Component {
   clearCircle = (circle) => {
     let segs = [];
     circle.segments.forEach((s) => {
+      let typeDetails = s.type == 'arc' ?
+        { center: [s.center[0], s.center[1]] } :
+        {
+          start: [s.start[0], s.start[1]],
+          end: [s.end[0], s.end[1]],
+        };
       segs.push({
         ...s,
         done: false,
         progress: [[0, 0]],
-        center: [s.center[0], s.center[1]],
+        ...typeDetails,
       });
     });
-    return { segments: segs }
+    return { segments: segs, params: circle.params }
   }
 
   render() {
@@ -292,10 +302,11 @@ class App extends React.Component {
           <div className="panel leftPanel">
             <table>
               <tbody>
-              {Object.entries(resources).map((kv) => {
-                let [name, info] = kv;
-                return <tr key={name}><td>{name.charAt(0).toUpperCase() + name.slice(1)}</td><td style={{width: '100%'}}><Resource color={info.color} percent={100*s.res[name]}></Resource></td></tr>
-              })}
+                {Object.keys(resources).filter((name) => {
+                  return s.res[name].visible
+                }).map((name) => {
+                  return <tr key={name}><td>{name.charAt(0).toUpperCase() + name.slice(1)}</td><td style={{ width: '100%' }}><Resource name={name} percent={100 * s.res[name].amount}></Resource></td></tr>
+                })}
               </tbody>
             </table>
           </div>
@@ -317,19 +328,46 @@ class App extends React.Component {
               <h4>Builder</h4>
               <div id="builder">
                 <div>
-                  Outer Anchors
-                  <input type="range" min="0" max="6" value={this.state.builderOuterAnchors}
+                  Heavenly
+                  <input type="range" min="0" max="1" value={this.state.builder.heavenly}
                     onChange={(e) => {
-                      this.setState({ builderOuterAnchors: e.target.value }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, heavenly: parseInt(e.target.value) } }, this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
                 </div>
                 <div>
-                  Inner Anchors
-                  <input type="range" min="0" max="6" value={this.state.builderInnerAnchors}
+                  Consume
+                  <input type="range" min="1" max="6" value={this.state.builder.source}
                     onChange={(e) => {
-                      this.setState({ builderInnerAnchors: e.target.value }, this.createPreview);
+                      this.setState({ builder: { ...this.state.builder, source: parseInt(e.target.value) } }, this.createPreview);
+                      e.preventDefault();
+                    }}
+                  ></input>
+                </div>
+                <div>
+                  Create
+                  <input type="range" min="0" max="6" value={this.state.builder.dest}
+                    onChange={(e) => {
+                      this.setState({ builder: { ...this.state.builder, dest: parseInt(e.target.value) } }, this.createPreview);
+                      e.preventDefault();
+                    }}
+                  ></input>
+                </div>
+                <div>
+                  Efficiency
+                  <input type="range" min="0" max="4" value={this.state.builder.efficiency}
+                    onChange={(e) => {
+                      this.setState({ builder: { ...this.state.builder, efficiency: parseInt(e.target.value) } }, this.createPreview);
+                      e.preventDefault();
+                    }}
+                  ></input>
+                </div>
+                <div>
+                  Pressure
+                  <input type="range" min="0" max="4" value={this.state.builder.pressure}
+                    onChange={(e) => {
+                      this.setState({ builder: { ...this.state.builder, pressure: parseInt(e.target.value) } }, this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
@@ -378,9 +416,22 @@ class App extends React.Component {
 
   createCircle = (state, done) => {
     let segments = [];
-    let spacing = 1.0 / state.builderOuterAnchors;
-    let mainRadius = .9;
-    if (state.builderOuterAnchors == 0) {
+    let spacing = 1.0 / state.builder.source;
+    let outerAnchorRadius = state.builder.efficiency >= 3 ? .12 : .08;
+    let innerAnchorRadius = state.builder.pressure >= 3 ? .12 : .08;
+    let mainRadius = 1 - outerAnchorRadius;
+    let enlargedAnchorRadius = outerAnchorRadius + .06;
+    if (state.builder.heavenly == 1) {
+      segments.push({
+        type: 'arc',
+        center: [0, 0],
+        radius: 1,
+        start: 0,
+        end: 1,
+      });
+    }
+    // dead code
+    if (state.builder.source === 0) {
       segments.push({
         type: 'arc',
         center: [0, 0],
@@ -389,20 +440,30 @@ class App extends React.Component {
         end: 1,
       });
     }
-    for (let i = 0; i < state.builderOuterAnchors; i++) {
+    let outerAnchors = [];
+    let enlargedOuterAnchors = [];
+    for (let i = 0; i < state.builder.source; i++) {
       let rad = normalizedToRadians(spacing * i);
 
-      segments.push({
+      outerAnchors.push({
         type: 'arc',
         center: [mainRadius * Math.cos(rad), mainRadius * Math.sin(rad)],
-        radius: .15,
+        radius: outerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+      enlargedOuterAnchors.push({
+        type: 'arc',
+        center: [mainRadius * Math.cos(rad), mainRadius * Math.sin(rad)],
+        radius: enlargedAnchorRadius,
         start: 0,
         end: 1,
       });
     }
-    for (let i = 0; i < state.builderOuterAnchors; i++) {
-      let curA = segments[i];
-      let nextA = segments[(i + 1) % state.builderOuterAnchors];
+    segments.push(...outerAnchors);
+    for (let i = 0; i < state.builder.source; i++) {
+      let curA = outerAnchors[i];
+      let nextA = outerAnchors[(i + 1) % state.builder.source];
       let tempSeg = {
         center: [0, 0],
         radius: mainRadius,
@@ -419,32 +480,187 @@ class App extends React.Component {
         end: norm1,
       })
     }
-    spacing = 1.0 / state.builderInnerAnchors;
-    let innerRadius = 0.4;
-    for (let i = 0; i < state.builderInnerAnchors; i++) {
-      let rad = normalizedToRadians(.5 + spacing * i);
+    if (state.builder.efficiency >= 2) {
+      for (let i = 0; i < state.builder.source; i++) {
 
+        let curA = enlargedOuterAnchors[i];
+        let tempSeg = {
+          center: [0, 0],
+          radius: mainRadius,
+        }
+        let sect0 = intersectCircles(tempSeg, curA, 'cw');
+        let sect1 = intersectCircles(tempSeg, curA, 'ccw');
+        sect0 = [sect0[0] - curA.center[0], sect0[1] - curA.center[1]];
+        sect1 = [sect1[0] - curA.center[0], sect1[1] - curA.center[1]];
+        let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
+        let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
+        if (norm0 < norm1) {
+          segments.push({
+            type: 'arc',
+            center: curA.center,
+            radius: enlargedAnchorRadius,
+            start: norm0,
+            end: norm1,
+          })
+        } else {
+          segments.push({
+            type: 'arc',
+            center: curA.center,
+            radius: enlargedAnchorRadius,
+            start: norm0,
+            end: 1,
+          })
+          segments.push({
+            type: 'arc',
+            center: curA.center,
+            radius: enlargedAnchorRadius,
+            start: 0,
+            end: norm1,
+          })
+        }
+
+      }
+    }
+    if (state.builder.efficiency >= 1) {
       segments.push({
         type: 'arc',
-        center: [innerRadius * Math.cos(rad), innerRadius * Math.sin(rad)],
-        radius: .15,
+        center: [0, 0],
+        radius: mainRadius - outerAnchorRadius,
         start: 0,
         end: 1,
       });
     }
-    return this.circleFromSegments(segments, done);
+    if (state.builder.efficiency >= 4) {
+      for (let i = 0; i < state.builder.source; i++) {
+        segments.push({
+          type: 'arc',
+          center: outerAnchors[i].center,
+          radius: outerAnchorRadius / 2,
+          start: 0,
+          end: 1,
+        });
+      }
+    }
+
+    let innerRadius = 0.4;
+    if (state.builder.heavenly == 1) {
+      segments.push({
+        type: 'arc',
+        center: [0, 0],
+        radius: innerRadius + innerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+    }
+    let innerAnchors = [];
+    spacing = 1.0 / state.builder.dest;
+    for (let i = 0; i < state.builder.dest; i++) {
+      let rad = normalizedToRadians(.5 + spacing * i);
+
+      innerAnchors.push({
+        type: 'arc',
+        center: [innerRadius * Math.cos(rad), innerRadius * Math.sin(rad)],
+        radius: innerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+    }
+    segments.push(...innerAnchors);
+    for (let i = 0; i < state.builder.dest; i++) {
+      let curA = innerAnchors[i];
+      let nextA = innerAnchors[(i + 1) % state.builder.dest];
+      let tempSeg = {
+        center: [0, 0],
+        radius: innerRadius,
+      }
+      let sect0 = intersectCircles(tempSeg, curA, 'cw');
+      let sect1 = intersectCircles(tempSeg, nextA, 'ccw');
+      let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
+      let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
+      if (norm0 < norm1) {
+        segments.push({
+          type: 'arc',
+          center: [0, 0],
+          radius: innerRadius,
+          start: norm0,
+          end: norm1,
+        })
+      } else {
+        segments.push({
+          type: 'arc',
+          center: [0, 0],
+          radius: innerRadius,
+          start: norm0,
+          end: 1,
+        })
+        segments.push({
+          type: 'arc',
+          center: [0, 0],
+          radius: innerRadius,
+          start: 0,
+          end: norm1,
+        })
+      }
+    }
+    if (state.builder.pressure >= 1) {
+      segments.push({
+        type: 'arc',
+        center: [0, 0],
+        radius: innerRadius - innerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+    }
+    if (state.builder.pressure >= 2) {
+      for (let i = 0; i < state.builder.dest; i++) {
+        let curCirc = innerAnchors[i];
+        let tempLine = {
+          start: [curCirc.center[0], curCirc.center[1]],
+          end: [0, 0],
+        };
+        let end = [0, 0];
+        let start = intersectLineCircle(tempLine, curCirc);
+        if (state.builder.dest == 1) {
+          end = [0, innerRadius - innerAnchorRadius];
+        }
+        let lenSq = (end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2;
+        segments.push({
+          type: 'line',
+          start,
+          end,
+          lenSq,
+          len: Math.sqrt(lenSq),
+        })
+      }
+    }
+    if (state.builder.pressure >= 4) {
+      for (let i = 0; i < state.builder.dest; i++) {
+        segments.push({
+          type: 'arc',
+          center: innerAnchors[i].center,
+          radius: innerAnchorRadius / 2,
+          start: 0,
+          end: 1,
+        });
+      }
+    }
+
+
+    return this.circleFromSegments(segments, done, { ...state.builder });
   }
 
-  circleFromSegments = (segments, done) => {
+  circleFromSegments = (segments, done, params) => {
     segments.forEach((segment) => {
       segment.progress = [[0, (done ? 1 : 0)]];
       if (!segment.lineWidth) {
         segment.lineWidth = 1
       }
-      segment.len = segment.radius * 2 * pi * (segment.end - segment.start);
+      if (segment.type == 'arc') {
+        segment.len = segment.radius * 2 * pi * (segment.end - segment.start);
+      }
       segment.done = done;
     });
-    return { segments, index: this.circleIndex++, done: false }
+    return { segments, index: this.circleIndex++, done: false, params: params }
   }
 
   drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
@@ -670,19 +886,19 @@ class App extends React.Component {
   }
 
   updateResources = (s) => {
-    s.res.earth = this.addResource(s.res.earth, .001, 1)
+    s.res.earth.amount = this.addResource(s.res.earth, .001, 1)
   }
 
   addResource = (resource, amount, sourceAmount) => {
     let mul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
-    if (resource > .5) {
-      mul = (2 - 2 * resource) ** 3
+    if (resource.amount > .5) {
+      mul = (2 - 2 * resource.amount) ** 3
     }
     if (sourceAmount < .5) {
       mul *= 1 - Math.cos(pi * sourceAmount)
     }
-    return resource + mul * amount
+    return resource.amount + mul * amount
 
   }
 
@@ -977,6 +1193,38 @@ function intersectCircles(segMain, segAlt, dir) {
     return mul * x1 < mul * x2 ? [x1, y1] : [x2, y2];
   }
   throw new Error('too far' + [x1, y1, x2, y2])
+}
+
+function sign(x) {
+  return x === 0 ? 1 : Math.sign(x);
+}
+
+// Finds the point on the line intersecting with the circle closest to the origin
+function intersectLineCircle(line, circle) {
+  let [x1, x2] = [line.start[0] - circle.center[0], line.end[0] - circle.center[0]];
+  let [y1, y2] = [line.start[1] - circle.center[1], line.end[1] - circle.center[1]];
+  let [dx, dy] = [x2 - x1, y2 - y1];
+  let dr = Math.sqrt(dx * dx + dy * dy)
+  let D = x1 * y2 - x2 * y1;
+  let r = circle.radius;
+  let DR = Math.sqrt(r * r * dr * dr - D * D) / (dr * dr);
+  let xa = D * dy + sign(dy) * dx * DR + circle.center[0]
+  let xb = D * dy - sign(dy) * dx * DR + circle.center[0]
+  let ya = -D * dx + Math.abs(dy) * DR + circle.center[1]
+  let yb = -D * dx - Math.abs(dy) * DR + circle.center[1]
+  if (Math.abs(xa) < Math.abs(xb)) {
+    return [xa, ya]
+  }
+  if (Math.abs(xb) < Math.abs(xa)) {
+    return [xb, yb]
+  }
+  if (Math.abs(ya) < Math.abs(yb)) {
+    return [xa, ya]
+  }
+  if (Math.abs(yb) < Math.abs(ya)) {
+    return [xb, yb]
+  }
+  throw new Error("math is hard " + [xa, xb, ya, yb])
 }
 
 function overlaps(s, t) {
