@@ -19,6 +19,7 @@
 * Dog gives hints and says useless things (haha)
 * glow and round to 1 when resource > 99.9(9?)%
 * better glyphs at max pressure/efficiency
+* hide pressure for generating ideas
 ### Mobile
 * Ability to view info about circles
 * View info about circles for mobile

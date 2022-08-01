@@ -29,7 +29,7 @@ const resources = {
     ideaEfficiency: .05,
     level: 4,
   }, dogs: {
-    color: '#000000',
+    color: '#cf1b1b',
     ideaEfficiency: .1,
     level: 5,
   }, heaven: {
@@ -126,15 +126,13 @@ class App extends React.Component {
       res: Object.keys(resources).reduce((result, r) => {
         result[r] = {
           amount: 0,
-          visible: false,
+          visible: true, // TODO back to false
         }
         return result
       }, {}),
     }
     state.res.earth.visible = true
     state.res.ideas.visible = true
-    // Temp for testing...
-    state = this.completeCircle(state, this.createCircle(state, true));
     state.tmCircle = this.createCircle(state, false);
     this.newSegments = state.tmCircle.segments.map(() => []);
     this.forceRedraw = true;
@@ -460,6 +458,15 @@ class App extends React.Component {
         type: 'arc',
         center: [0, 0],
         radius: innerRadius + innerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+    }
+    if (state.builder.dest === 0) {
+      segments.push({
+        type: 'arc',
+        center: [0, 0],
+        radius: innerRadius,
         start: 0,
         end: 1,
       });
@@ -809,20 +816,37 @@ class App extends React.Component {
   }
 
   updateResources = (s) => {
-    s.res.earth.amount = this.addResource(s.res.earth, .001, 1)
+    let baseIncome = .001
+    let baseConsumption = .0005
+    let [_, gain] = this.calcResource(s.res.earth, baseIncome, 1, 0, 1)
+    s.res.earth.amount += gain
+    for (const c of s.completedCircles) {
+      let [cost, gain] = this.calcResource(s.res[destRes(c)], baseConsumption, s.res[sourceRes(c)].amount, c.params.pressure, c.params.efficiency)
+      if (isNaN(gain) || isNaN(cost)) {
+      console.log('create ', destRes(c), ' +', gain, ', ', sourceRes(c), ' -', cost)
+      throw new Error('nan')
+      }
+      s.res[destRes(c)].amount += gain
+      s.res[sourceRes(c)].amount -= cost
+    }
   }
 
-  addResource = (resource, amount, sourceAmount) => {
-    let mul = 1
+  calcResource = (resource, amount, sourceAmount, pressure, efficiency) => {
+    if (resource.amount > .9999) {
+      return [0, 0];
+    }
+    let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
-    if (resource.amount > .5) {
-      mul = (2 - 2 * resource.amount) ** 3
+    if (pressure < 5 && resource.amount > .5) {
+      let exp = [3, 2, 1, 0.5, 1/3][pressure];
+      destMul = (2 - 2 * resource.amount) ** exp
     }
+    let sourceMul = 1
     if (sourceAmount < .5) {
-      mul *= 1 - Math.cos(pi * sourceAmount)
+      sourceMul = 1 - Math.cos(pi * sourceAmount);
     }
-    return resource.amount + mul * amount
-
+    efficiency = [.1, .2, .3, .5, 1][efficiency] * 10
+    return [sourceMul * amount, destMul * sourceMul * amount * efficiency]
   }
 
   mouseMove = (e) => {
@@ -1161,6 +1185,16 @@ function overlaps(s, t) {
     return true;
   }
   return false;
+}
+
+function destRes(circle) {
+  let p = circle.params;
+  return resMap[p.heavenly][p.dest]
+}
+
+function sourceRes(circle) {
+  let p = circle.params;
+  return resMap[p.heavenly][p.source]
 }
 
 export default App;
