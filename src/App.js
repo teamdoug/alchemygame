@@ -54,6 +54,10 @@ const resources = {
     level: 5,
   }
 }
+const resMap = {
+  0: ['ideas', 'earth', 'water', 'plants', 'animals', 'dogs'],
+  1: ['ideas', 'heaven', 'light', 'air', 'clouds', 'stars'],
+}
 
 function Resource(props) {
   return <div className="resource">
@@ -105,99 +109,8 @@ class App extends React.Component {
   };
 
   getInitState = () => {
-    let tmCircle = {
-      segments: [{
-        type: 'arc',
-        done: false,
-        center: [0, 0],
-        radius: 1,
-        start: 0,
-        end: 1,
-        len: 2 * pi,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'arc',
-        done: false,
-        center: [0, 0],
-        radius: 2 / 3,
-        start: 0,
-        end: .5,
-        len: 2 * pi * 2 / 3 * .5,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'arc',
-        done: false,
-        center: [0, 0],
-        radius: 1 / 3,
-        start: .5,
-        end: 1,
-        len: 2 * pi * 1 / 3 * .5,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'arc',
-        done: false,
-        center: [0, 0],
-        radius: 3 / 4,
-        start: .75,
-        end: 1,
-        len: 2 * pi * 3 / 4 * .25,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'arc',
-        done: false,
-        center: [0, 0],
-        radius: 3 / 4,
-        start: 0,
-        end: .25,
-        len: 2 * pi * 3 / 4 * .25,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'arc',
-        done: false,
-        center: [0, 0],
-        radius: 2 / 4,
-        start: .25,
-        end: .75,
-        len: 2 * pi * 2 / 4 * .5,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'line',
-        done: false,
-        start: [0, 0],
-        end: [0.5, 0],
-        lenSq: 0.5 ** 2,
-        len: 0.5,
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'line',
-        done: false,
-        start: [0, 0],
-        end: [0, 2 / 3],
-        lenSq: (2 / 3) ** 2,
-        len: (2 / 3),
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }, {
-        type: 'line',
-        done: false,
-        start: [0, 1],
-        end: [1, 0],
-        lenSq: 1 + 1,
-        len: Math.sqrt(2),
-        lineWidth: 1,
-        progress: [[0, 0]],
-      }],
-    };
     let state = {
       paused: false,
-      tmCircle: tmCircle,
       previewCircle: null,
       builder: {
         heavenly: 0,
@@ -214,18 +127,16 @@ class App extends React.Component {
         result[r] = {
           amount: 0,
           visible: false,
-          unlocked: false,
         }
         return result
       }, {}),
     }
-    state.res.earth.unlocked = true
     state.res.earth.visible = true
-    state.res.ideas.unlocked = true
     state.res.ideas.visible = true
     // Temp for testing...
     state = this.completeCircle(state, this.createCircle(state, true));
-    this.newSegments = tmCircle.segments.map(() => []);
+    state.tmCircle = this.createCircle(state, false);
+    this.newSegments = state.tmCircle.segments.map(() => []);
     this.forceRedraw = true;
     return state;
   }
