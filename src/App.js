@@ -135,9 +135,14 @@ const PROG = {
     triggerResource: 'end',
   }],
 }
+const maxSource = 5
+const maxDest = 5
+const maxEfficiency = 4
+const maxPressure = 4
+
 
 function Resource(props) {
-  return <div className="resource">
+  return <div className={'resource ' + (props.shiny ? 'shiny' : '')}>
     <div
       style={{
         width: props.percent + "%",
@@ -214,6 +219,15 @@ class App extends React.Component {
       },
       drawSpeed: .01 * 1000,
       completedCircles: [],
+      drawnCircles: Object.keys(resources).reduce((result, r) => {
+        result[r] = {}
+        return result
+      }, {}),
+      drawnDestTotals: Object.keys(resources).reduce((result, r) => {
+        result[r] = {}
+        return result
+      }, {}),
+      drawnTotal: 0,
       circleIndex: 0,
       showBuilder: true,
       res: Object.keys(resources).reduce((result, r) => {
@@ -230,6 +244,7 @@ class App extends React.Component {
     // Used to end prog chains by never being visible
     state.res.end = { visible: false }
     state.tmCircle = this.createCircle(state, false);
+    state.buildCost = this.getBuildCost(state.builder);
     this.newSegments = state.tmCircle.segments.map(() => []);
     this.forceRedraw = true;
     return state;
@@ -238,11 +253,36 @@ class App extends React.Component {
   completeCircle = (state, circle) => {
     circle.index = state.circleIndex++
     circle.done = true;
+    let destName = destRes(circle)
+    state.drawnCircles[destName][this.getCircleKey(circle)]++
+    state.drawnDestTotals[destName]++
+    state.drawnTotal++
     state.completedCircles.push(circle);
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
 
     return state;
+  }
+
+
+
+  getBuildCost = (builder) => {
+    let dest = builder.dest;
+    let source = builder.source;
+    let eff = builder.efficiency;
+    let press = dest == 0 ? 0 : builder.pressure;
+    let sourceCost = .25 + (dest / maxDest) * .25 +
+      ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .5
+    let destCost = (eff) / (maxEfficiency) * (press) / (maxPressure) * .75;
+    if (dest == source) {
+      return {
+        [sourceRes(builder)]: Math.max(sourceCost, destCost),
+      }
+    }
+    return {
+      [sourceRes(builder)]: sourceCost,
+      [destRes(builder)]: destCost,
+    }
   }
 
   reset = () => {
@@ -272,7 +312,22 @@ class App extends React.Component {
     this.newSegments = s.tmCircle.segments.map(() => []);
   }
 
+  haveCost = () => {
+    return Object.entries(this.state.buildCost).every(([name, cost]) => {
+      if (this.state.res[name].amount < cost) {
+        return false
+      }
+      return true
+    })
+  }
+
   startDraw = () => {
+    if (!this.haveCost()) {
+      return
+    }
+    Object.entries(this.state.buildCost).forEach(([name, cost]) => {
+      this.state.res[name].amount -= cost;
+    })
     let tmCircle = this.clearCircle(this.state.previewCircle);
     this.setState({ tmCircle, showBuilder: false })
     this.forceRedraw = true;
@@ -313,16 +368,16 @@ class App extends React.Component {
                   this.setState((s) => { this.completeResearch(s) });
                 }}>Complete Research</button>}
               {'source' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => {this.startResearch(s, 'source')})
+                this.setState((s) => { this.startResearch(s, 'source') })
               }}>Source</button>}
               {'dest' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => {this.startResearch(s, 'dest')})
+                this.setState((s) => { this.startResearch(s, 'dest') })
               }}>Dest</button>}
               {'efficiency' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => {this.startResearch(s, 'efficiency')})
+                this.setState((s) => { this.startResearch(s, 'efficiency') })
               }}>Efficiency</button>}
               {'pressure' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => {this.startResearch(s, 'pressure')})
+                this.setState((s) => { this.startResearch(s, 'pressure') })
               }}>Pressure</button>}
             </div>
             <table>
@@ -333,7 +388,7 @@ class App extends React.Component {
                   return (<tr key={name}>
                     <td>{name.charAt(0).toUpperCase() + name.slice(1)}</td>
                     <td style={{ width: '100%' }}>
-                      <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap}></Resource>
+                      <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap} shiny={s.res[name].amount == s.res[name].cap}></Resource>
                     </td>
                   </tr>)
                 })}
@@ -354,25 +409,29 @@ class App extends React.Component {
           </div>
           <div className="panel" id="mainPanel">
             {s.showBuilder && <div id="builderPanel">
-              <div id="closeBuilder" onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>X</div>
-              <h4>Builder</h4>
+              <div style={{ display: 'flex', margin: '5px', }}>
+                <div onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>&lt;&nbsp;Builder</div>
+                <div id="builderCost">
+                  Cost: </div>
+                <div style={{ flexGrow: 1, width: '100%' }}>
+                  {Object.entries(s.buildCost).filter(([name, cost]) => cost > 0).
+                    map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap} shiny={s.res[name].amount >= cost}></Resource></div>
+                    )}
+                </div>
+
+              </div>
               <div id="builder">
                 {/*<div>
                   Heavenly
-                  <input type="range" min="0" max="1" value={this.state.builder.heavenly}
-                    onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, heavenly: parseInt(e.target.value) } },
-                      this.createPreview);
-                      e.preventDefault();
-                    }}
-                  ></input>
                   </div>*/}
                 {s.sliderUnlocks.source >= 2 && <div>
                   Consume
                   <input type="range" min="1" max={this.state.sliderUnlocks.source} value={this.state.builder.source}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, source: parseInt(e.target.value) } },
-                        this.createPreview);
+                      this.setState((s) => {
+                        let builder = { ...this.state.builder, source: parseInt(e.target.value) };
+                        return { builder, buildCost: this.getBuildCost(builder) }
+                      }, this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
@@ -381,8 +440,10 @@ class App extends React.Component {
                   Create
                   <input type="range" min="0" max={this.state.sliderUnlocks.dest} value={this.state.builder.dest}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, dest: parseInt(e.target.value) } },
-                        this.createPreview);
+                      this.setState((s) => {
+                        let builder = { ...this.state.builder, dest: parseInt(e.target.value) };
+                        return { builder, buildCost: this.getBuildCost(builder) }
+                      }, this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
@@ -391,18 +452,22 @@ class App extends React.Component {
                   Efficiency
                   <input type="range" min="0" max={this.state.sliderUnlocks.efficiency} value={this.state.builder.efficiency}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, efficiency: parseInt(e.target.value) } },
-                        this.createPreview);
+                      this.setState((s) => {
+                        let builder = { ...this.state.builder, efficiency: parseInt(e.target.value) };
+                        return { builder, buildCost: this.getBuildCost(builder) }
+                      }, this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
                 </div>}
-                {s.sliderUnlocks.pressure >= 1 && <div>
+                {s.sliderUnlocks.pressure >= 1 && s.builder.dest != 0 && <div>
                   Pressure
                   <input type="range" min="0" max={this.state.sliderUnlocks.pressure} value={this.state.builder.pressure}
                     onChange={(e) => {
-                      this.setState({ builder: { ...this.state.builder, pressure: parseInt(e.target.value) } },
-                        this.createPreview);
+                      this.setState((s) => {
+                        let builder = { ...this.state.builder, pressure: parseInt(e.target.value) };
+                        return { builder, buildCost: this.getBuildCost(builder) }
+                      }, this.createPreview);
                       e.preventDefault();
                     }}
                   ></input>
@@ -415,6 +480,7 @@ class App extends React.Component {
                 <div style={{ 'textAlign': 'right' }}>
                   <button
                     onClick={this.startDraw}
+                    disabled={!this.haveCost()}
                   >Let's Draw It</button>
                 </div>
               </div>
@@ -647,7 +713,7 @@ class App extends React.Component {
         })
       }
     }
-    if (state.builder.pressure >= 1) {
+    if (state.builder.pressure >= 1 && state.builder.dest != 0) {
       segments.push({
         type: 'arc',
         center: [0, 0],
@@ -656,7 +722,7 @@ class App extends React.Component {
         end: 1,
       });
     }
-    if (state.builder.pressure >= 2) {
+    if (state.builder.pressure >= 2 && state.builder.dest != 0) {
       for (let i = 0; i < state.builder.dest; i++) {
         let curCirc = innerAnchors[i];
         let tempLine = {
@@ -678,7 +744,7 @@ class App extends React.Component {
         })
       }
     }
-    if (state.builder.pressure >= 4) {
+    if (state.builder.pressure >= 4 && state.builder.dest != 0) {
       for (let i = 0; i < state.builder.dest; i++) {
         segments.push({
           type: 'arc',
@@ -695,6 +761,9 @@ class App extends React.Component {
   }
 
   circleFromSegments = (segments, done, insideStart, params) => {
+    if (params.dest == 0) {
+      params.pressure = 0
+    }
     segments.forEach((segment) => {
       segment.progress = [[0, (done ? 1 : 0)]];
       if (!segment.lineWidth) {
@@ -867,6 +936,11 @@ class App extends React.Component {
     s.researchOpts = {}
   }
 
+  getCircleKey = (circle) => {
+    return (circle.params.source + "_" + circle.params.dest + "_" +
+      circle.params.efficiency + "_" + circle.params.pressure)
+  }
+
   completeResearch = (s, type) => {
     if (!type && (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost))) {
       return;
@@ -893,6 +967,9 @@ class App extends React.Component {
 
     this.setState(state => {
       let s = state;
+      if (debug) {
+        this.completeResearch(s);
+      }
       this.updateResources(s);
       this.checkProg(s);
       let allDone = true;
@@ -1014,7 +1091,7 @@ class App extends React.Component {
   }
 
   updateResources = (s) => {
-    let baseIncome = .001
+    let baseIncome = .01
     let baseConsumption = .0005
     let [_, gain] = this.calcResource(s.res.earth, baseIncome, 1, 0, 1)
     s.res.earth.amount += gain
@@ -1391,12 +1468,18 @@ function overlaps(s, t) {
 }
 
 function destRes(circle) {
-  let p = circle.params;
+  let p = circle;
+  if ('params' in circle) {
+    p = circle.params;
+  }
   return resMap[p.heavenly][p.dest]
 }
 
 function sourceRes(circle) {
-  let p = circle.params;
+  let p = circle;
+  if ('params' in circle) {
+    p = circle.params;
+  }
   return resMap[p.heavenly][p.source]
 }
 
