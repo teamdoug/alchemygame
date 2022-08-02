@@ -41,6 +41,10 @@ body {
   max-width: 200px;
 }
 
+canvas.destroySelect {
+  background-color: #9c2d21;
+}
+
 #builderPanel {
   background-color: rgba(47,47,47,.95);
   position: absolute;
@@ -52,6 +56,14 @@ body {
 #builderCost {
   margin-left: 20px;
   margin-right: 5px;
+}
+
+#selectorPanel {
+  background-color: rgba(47,47,47,.95);
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 300px;
 }
 
 @media only screen and (min-height: 500px) {

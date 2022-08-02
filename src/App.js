@@ -139,6 +139,7 @@ const maxSource = 5
 const maxDest = 5
 const maxEfficiency = 4
 const maxPressure = 4
+const maxCircles = 12
 
 
 function Resource(props) {
@@ -229,7 +230,8 @@ class App extends React.Component {
       }, {}),
       drawnTotal: 0,
       circleIndex: 0,
-      showBuilder: true,
+      showSelector: false,
+      showBuilder: true, // TODO prob change this?
       res: Object.keys(resources).reduce((result, r) => {
         result[r] = {
           amount: 0,
@@ -239,6 +241,8 @@ class App extends React.Component {
         }
         return result
       }, {}),
+      selectToDelete: false,
+      selectedCirclesDelete: [],
     }
     state.res.earth.visible = true
     // Used to end prog chains by never being visible
@@ -396,13 +400,18 @@ class App extends React.Component {
             </table>
           </div>
           <div className="panel leftPanel narrow">
-            <h3>Transmutation Circles</h3>
-
-            <h4>Selector {!s.showBuilder && <span onClick={() => this.setState({ showBuilder: true }, () => { this.resizePreview(); this.createPreview() })}>Builder &gt;</span>}</h4>
+            <div className="big">{!s.showSelector && <span onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>}
+              {!s.showBuilder && <span style={{ marginLeft: '8px' }} onClick={() => this.setState({ showBuilder: true, showSelector: false }, () => { this.resizePreview(); this.createPreview() })}>Builder&nbsp;&gt;</span>}</div>
             <div id="#selector">
               <div>
                 {s.completedCircles.map((c) => {
-                  return <canvas ref={this.completedCanvases[c.index]} key={c.index} className="completedCircle"></canvas>
+                  return <canvas ref={this.completedCanvases[c.index]} key={c.index}
+                    className={"completedCircle " + (s.selectedCirclesDelete[c.index] ? 'destroySelect' : '')}
+                    onClick={s.selectToDelete ? (
+                      () => this.setState({
+                        selectedCirclesDelete: { ...s.selectedCirclesDelete, [c.index]: !s.selectedCirclesDelete[c.index] }
+                      })) : () => { }}
+                  ></canvas>
                 }, this)}
               </div>
             </div>
@@ -477,13 +486,25 @@ class App extends React.Component {
                     ref={this.previewCanvas}
                   ></canvas>
                 </div>
+                {s.completedCircles.length >= maxCircles && <span>Maximum circle count reached. Select circles to delete to draw more.</span>}
                 <div style={{ 'textAlign': 'right' }}>
                   <button
                     onClick={this.startDraw}
-                    disabled={!this.haveCost()}
+                    disabled={!this.haveCost() || s.completedCircles.length >= maxCircles}
                   >Let's Draw It</button>
                 </div>
               </div>
+            </div>
+            }
+            {s.showSelector && <div id="selectorPanel">
+              <div style={{ display: 'flex', margin: '5px', }}>
+                <div onClick={(e) => { this.setState({ showSelector: false }); e.preventDefault() }}>&lt;&nbsp;Selector</div>
+              </div>
+              {/* TODO !selectToDelete && <span>Select a circle to see more info</span>*/}
+              {!s.selectToDelete && <button onClick={(e) => { this.setState({ selectToDelete: true, selectedCirclesDelete: {}, }); e.preventDefault() }}>Destroy Circles</button>}
+              {s.selectToDelete && <button onClick={(e) => { this.triggerDestruction(); e.preventDefault() }}>Destroy Selected Circles</button>}
+              {s.selectToDelete && <button onClick={(e) => { this.setState({ selectToDelete: false, selectedCirclesDelete: {}, }); e.preventDefault() }}>Cancel Destruction</button>}
+
             </div>
             }
             <div id="drawPanel">
@@ -503,6 +524,23 @@ class App extends React.Component {
         </div>
       </div>
     );
+  }
+
+  triggerDestruction = () => {
+    let s = this.state;
+    Object.entries(s.selectedCirclesDelete).forEach(([index, val]) => {
+      if (!val) {
+        return
+      }
+      for (let i = 0; i < s.completedCircles.length; i++) {
+        if (s.completedCircles[i].index == index) {
+          s.completedCircles.splice(i, 1);
+        }
+      }
+      delete this.completedCanvases[index];
+    })
+    s.selectedCirclesDelete = {}
+    s.selectToDelete = false;
   }
 
   createPreview = () => {

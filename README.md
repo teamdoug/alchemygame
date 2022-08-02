@@ -2,25 +2,23 @@
 
 ## TODO
 * Why does having more circles make existing circles brighter?
-* More drawing options (non-circles, inner circle esp.)
 * Indicate already-created circles on the builder, maybe even on sliders if all variations done?
 * Circle selector
 * Split power among circles????
-* You know, resources
 * Animate circle creation
 * Animate and fix builder button
 * Delete circles
 * Mouseover circle info
-* Costs to make circles
 * Circles buff their own type
-* Color circles by what they make
-* Goal is to fill up everything (improve diminishing returns??)
 * Improve diminishing returns by making circles of same type or by improving circles
 * Dog gives hints and says useless things (haha)
-* glow and round to 1 when resource > 99.9(9?)%
 * better glyphs at max pressure/efficiency
-* hide pressure for generating ideas
 * flash to indicate unlocks
+* remove cost for things already built
+* bonuses for already built
+* limit built count
+* allow deletion/deactivation?
+* test colorblind (names on costs?)
 ### Mobile
 * Ability to view info about circles
 * View info about circles for mobile
