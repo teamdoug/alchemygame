@@ -13,7 +13,7 @@ const resources = {
     color: '#7008a8',
     ideaEfficiency: 1,
   }, earth: {
-    color: '#5c4219',
+    color: '#947e66',
     ideaEfficiency: .01,
     level: 1,
   }, water: {
@@ -25,7 +25,7 @@ const resources = {
     ideaEfficiency: .03,
     level: 3,
   }, animals: {
-    color: '#a38f79',
+    color: '#ffffff',
     ideaEfficiency: .05,
     level: 4,
   }, dogs: {
