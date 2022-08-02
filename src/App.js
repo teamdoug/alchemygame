@@ -225,7 +225,7 @@ class App extends React.Component {
         return result
       }, {}),
       drawnDestTotals: Object.keys(resources).reduce((result, r) => {
-        result[r] = {}
+        result[r] = 0
         return result
       }, {}),
       drawnTotal: 0,
@@ -258,7 +258,11 @@ class App extends React.Component {
     circle.index = state.circleIndex++
     circle.done = true;
     let destName = destRes(circle)
-    state.drawnCircles[destName][this.getCircleKey(circle)]++
+    if (circle.key in state.drawnCircles[destName]) {
+      state.drawnCircles[destName][circle.key] += 1
+    } else {
+      state.drawnCircles[destName][circle.key] = 1
+    }
     state.drawnDestTotals[destName]++
     state.drawnTotal++
     state.completedCircles.push(circle);
@@ -354,7 +358,7 @@ class App extends React.Component {
         ...typeDetails,
       });
     });
-    return { segments: segs, params: circle.params, insideStart: circle.insideStart }
+    return { segments: segs, params: circle.params, insideStart: circle.insideStart, key: circle.key }
   }
 
   render() {
@@ -812,7 +816,7 @@ class App extends React.Component {
       }
       segment.done = done;
     });
-    return { segments, index: this.circleIndex++, done, params, insideStart }
+    return { segments, index: this.circleIndex++, done, params, insideStart, key: this.getCircleKey(params) }
   }
 
   drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
@@ -974,9 +978,9 @@ class App extends React.Component {
     s.researchOpts = {}
   }
 
-  getCircleKey = (circle) => {
-    return (circle.params.source + "_" + circle.params.dest + "_" +
-      circle.params.efficiency + "_" + circle.params.pressure)
+  getCircleKey = (params) => {
+    return (params.source + "_" + params.dest + "_" +
+      params.efficiency + "_" + params.pressure)
   }
 
   completeResearch = (s, type) => {
@@ -1131,6 +1135,9 @@ class App extends React.Component {
   updateResources = (s) => {
     let baseIncome = .01
     let baseConsumption = .0005
+    // TODO affect with s.drawnTotal,
+    // s.drawnDestTotals (by dest),
+    // Object.keys(s.drawnCricles[dest]).length
     let [_, gain] = this.calcResource(s.res.earth, baseIncome, 1, 0, 1)
     s.res.earth.amount += gain
     for (const c of s.completedCircles) {

@@ -8,16 +8,13 @@
 * Animate circle creation
 * Animate and fix builder button
 * Delete circles
-* Mouseover circle info
+* Mouseover circle info (which resources increased/decreased)
 * Circles buff their own type
-* Improve diminishing returns by making circles of same type or by improving circles
 * Dog gives hints and says useless things (haha)
 * better glyphs at max pressure/efficiency
 * flash to indicate unlocks
 * remove cost for things already built
 * bonuses for already built
-* limit built count
-* allow deletion/deactivation?
 * test colorblind (names on costs?)
 ### Mobile
 * Ability to view info about circles
