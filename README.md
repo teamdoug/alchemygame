@@ -16,6 +16,7 @@
 * remove cost for things already built
 * bonuses for already built
 * test colorblind (names on costs?)
+* confirm reset
 ### Mobile
 * Ability to view info about circles
 * View info about circles for mobile

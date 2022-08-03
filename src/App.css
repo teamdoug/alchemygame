@@ -92,7 +92,7 @@ canvas.destroySelect {
 }
 
 #previewCanvas {
-  width: 100%;
+  width: 300px;
   padding-top: 10px;
 }
 
@@ -112,7 +112,7 @@ canvas.destroySelect {
 }
 
 .resource.shiny {
-  animation: shinyColor 2s ease;
+  animation: shinyColor 2s ease infinite;
   border-color: #FFD700;
 }
 

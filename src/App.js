@@ -2,6 +2,7 @@ import './App.css';
 import React from "react";
 
 const debug = true;
+const forceReset = false;
 const maxWidth = 4000;
 const maxHeight = 4500;
 const pi = Math.PI;
@@ -14,23 +15,23 @@ const resources = {
     ideaEfficiency: 1,
   }, earth: {
     color: '#947e66',
-    ideaEfficiency: .01,
+    ideaEfficiency: 5,
     level: 1,
   }, water: {
     color: '#1144bd',
-    ideaEfficiency: .02,
+    ideaEfficiency: 15,
     level: 2,
   }, plants: {
     color: '#119915',
-    ideaEfficiency: .03,
+    ideaEfficiency: 45,
     level: 3,
   }, animals: {
     color: '#ffffff',
-    ideaEfficiency: .05,
+    ideaEfficiency: 120,
     level: 4,
   }, dogs: {
     color: '#cf1b1b',
-    ideaEfficiency: .1,
+    ideaEfficiency: 500,
     level: 5,
   }, heaven: {
     color: '#FFD700',
@@ -61,7 +62,7 @@ const resMap = {
 
 const PROG = {
   'dest': [{
-    ideaCost: 1,
+    ideaCost: .5,
     triggerResource: 'ideas',
     unlockSlider: ['dest', 1],
   }, {
@@ -141,6 +142,12 @@ const maxEfficiency = 4
 const maxPressure = 4
 const maxCircles = 12
 
+const drawFactor = 1
+const efficiencyFactor = 1
+const distFudge = .05
+const onArcSlop = .001
+const onLineSlop = .001
+
 
 function Resource(props) {
   return <div className={'resource ' + (props.shiny ? 'shiny' : '')}>
@@ -172,11 +179,12 @@ class App extends React.Component {
     this.baseLineWidth = .01;
     this.resetLocalVars();
     const storedState = localStorage.getItem("heartosisIGJ5Save");
-    if (storedState && !debug) {
+    if (storedState && !forceReset) {
       this.state = JSON.parse(storedState);
     } else {
       this.state = this.getInitState();
     }
+    setTimeout(this.initCompletedCanvases, 0);
   }
 
   resetLocalVars = () => {
@@ -218,7 +226,7 @@ class App extends React.Component {
         'efficiency': 0,
         'pressure': 0,
       },
-      drawSpeed: .01 * 1000,
+      drawSpeed: .01,
       completedCircles: [],
       drawnCircles: Object.keys(resources).reduce((result, r) => {
         result[r] = {}
@@ -231,13 +239,15 @@ class App extends React.Component {
       drawnTotal: 0,
       circleIndex: 0,
       showSelector: false,
-      showBuilder: true, // TODO prob change this?
+      showBuilder: false,
       res: Object.keys(resources).reduce((result, r) => {
         result[r] = {
           amount: 0,
           visible: false,
           name: r,
           cap: 1,
+          gain: 0,
+          loss: 0,
         }
         return result
       }, {}),
@@ -247,17 +257,28 @@ class App extends React.Component {
     state.res.earth.visible = true
     // Used to end prog chains by never being visible
     state.res.end = { visible: false }
-    state.tmCircle = this.createCircle(state, false);
+    state.tmCircle = null; //this.createCircle(state, false);
+    this.newSegments = []; //state.tmCircle.segments.map(() => []);
     state.buildCost = this.getBuildCost(state.builder);
-    this.newSegments = state.tmCircle.segments.map(() => []);
     this.forceRedraw = true;
     return state;
+  }
+
+  initCompletedCanvases = () => {
+    for (const circle of Object.values(this.state.completedCircles)) {
+      this.completedCanvases[circle.index] = React.createRef();
+      this.undrawnCompleted.set(circle.index, circle);
+    }
   }
 
   completeCircle = (state, circle) => {
     circle.index = state.circleIndex++
     circle.done = true;
     let destName = destRes(circle)
+    for (const seg of Object.values(circle.segments)) {
+      seg.done = true
+      seg.progress = [[0, 1]]
+    }
     if (circle.key in state.drawnCircles[destName]) {
       state.drawnCircles[destName][circle.key] += 1
     } else {
@@ -274,30 +295,12 @@ class App extends React.Component {
 
 
 
-  getBuildCost = (builder) => {
-    let dest = builder.dest;
-    let source = builder.source;
-    let eff = builder.efficiency;
-    let press = dest == 0 ? 0 : builder.pressure;
-    let sourceCost = .25 + (dest / maxDest) * .25 +
-      ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .5
-    let destCost = (eff) / (maxEfficiency) * (press) / (maxPressure) * .75;
-    if (dest == source) {
-      return {
-        [sourceRes(builder)]: Math.max(sourceCost, destCost),
-      }
-    }
-    return {
-      [sourceRes(builder)]: sourceCost,
-      [destRes(builder)]: destCost,
-    }
-  }
 
   reset = () => {
     this.confirmingReset = false;
     this.resetLocalVars();
     let state = this.getInitState();
-    this.setState(state, this.resizeCanvas);
+    this.setState(state, this.resizeCanvas());
 
   }
 
@@ -317,7 +320,9 @@ class App extends React.Component {
     this.undrawnCompleted = new Map();
 
     this.forceRedraw = false;
-    this.newSegments = s.tmCircle.segments.map(() => []);
+    if (s.tmCircle !== null) {
+      this.newSegments = s.tmCircle.segments.map(() => []);
+    }
   }
 
   haveCost = () => {
@@ -329,13 +334,15 @@ class App extends React.Component {
     })
   }
 
-  startDraw = () => {
-    if (!this.haveCost()) {
+  startDraw = (pay) => {
+    if (pay && !this.haveCost()) {
       return
     }
-    Object.entries(this.state.buildCost).forEach(([name, cost]) => {
-      this.state.res[name].amount -= cost;
-    })
+    if (pay) {
+      Object.entries(this.state.buildCost).forEach(([name, cost]) => {
+        this.state.res[name].amount -= cost;
+      })
+    }
     let tmCircle = this.clearCircle(this.state.previewCircle);
     this.setState({ tmCircle, showBuilder: false })
     this.forceRedraw = true;
@@ -368,25 +375,36 @@ class App extends React.Component {
       <div id="verticalFlex">
         <div id="flex">
           <div className="panel leftPanel">
-            <div>
-              {s.gameDone && <span>You win!</span>}
-              <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
-              {s.researchComplete &&
-                <button onClick={() => {
-                  this.setState((s) => { this.completeResearch(s) });
-                }}>Complete Research</button>}
-              {'source' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => { this.startResearch(s, 'source') })
-              }}>Source</button>}
-              {'dest' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => { this.startResearch(s, 'dest') })
-              }}>Dest</button>}
-              {'efficiency' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => { this.startResearch(s, 'efficiency') })
-              }}>Efficiency</button>}
-              {'pressure' in s.researchOpts && <button onClick={() => {
-                this.setState((s) => { this.startResearch(s, 'pressure') })
-              }}>Pressure</button>}
+            <div style={{ display: "flex" }}>
+              <div style={{ flexGrow: 1 }}>
+                {s.gameDone && <span>You win!</span>}
+                <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
+                {s.researchComplete &&
+                  <button onClick={() => {
+                    this.setState((s) => { this.completeResearch(s) });
+                  }}>Complete Research</button>}
+                {'source' in s.researchOpts && <button onClick={() => {
+                  this.setState((s) => { this.startResearch(s, 'source') })
+                }}>Source</button>}
+                {'dest' in s.researchOpts && <button onClick={() => {
+                  this.setState((s) => { this.startResearch(s, 'dest') })
+                }}>Dest</button>}
+                {'efficiency' in s.researchOpts && <button onClick={() => {
+                  this.setState((s) => { this.startResearch(s, 'efficiency') })
+                }}>Efficiency</button>}
+                {'pressure' in s.researchOpts && <button onClick={() => {
+                  this.setState((s) => { this.startResearch(s, 'pressure') })
+                }}>Pressure</button>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {debug &&
+                  <button disabled={s.tmCircle === null} onClick={() => {
+                    this.completeCircle(s, s.tmCircle);
+                    this.drawCanvas(this.canvas, s.tmCircle, this.transform, true)
+                  }}>Cheat Circle</button>}
+                <button>Pause</button>
+                <button onClick={this.reset}>Reset</button>
+              </div>
             </div>
             <table>
               <tbody>
@@ -398,13 +416,16 @@ class App extends React.Component {
                     <td style={{ width: '100%' }}>
                       <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap} shiny={s.res[name].amount == s.res[name].cap}></Resource>
                     </td>
+                    <td><button onClick={() => s.res[name].amount += .1}>+.1</button>
+                      <button onClick={() => s.res[name].amount -= .1}>-.1</button></td>
+                    <td>+{s.res[name].gain.toFixed(6)} -{s.res[name].loss.toFixed(6)}</td>
                   </tr>)
                 })}
               </tbody>
             </table>
           </div>
           <div className="panel leftPanel narrow">
-            <div className="big">{!s.showSelector && <span onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>}
+            <div className="big"><span style={s.showSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>
               {!s.showBuilder && <span style={{ marginLeft: '8px' }} onClick={() => this.setState({ showBuilder: true, showSelector: false }, () => { this.resizePreview(); this.createPreview() })}>Builder&nbsp;&gt;</span>}</div>
             <div id="#selector">
               <div>
@@ -491,11 +512,22 @@ class App extends React.Component {
                   ></canvas>
                 </div>
                 {s.completedCircles.length >= maxCircles && <span>Maximum circle count reached. Select circles to delete to draw more.</span>}
-                <div style={{ 'textAlign': 'right' }}>
-                  <button
-                    onClick={this.startDraw}
-                    disabled={!this.haveCost() || s.completedCircles.length >= maxCircles}
-                  >Let's Draw It</button>
+                <div style={{ display: 'flex' }}>
+                  <div style={{ 'textAlign': 'left', 'flexGrow': 1 }}>
+                    <button onClick={this.cancelDraw}>Cancel Drawing</button>
+                  </div>
+                  {debug && <div style={{ 'textAlign': 'right' }}>
+                    <button
+                      onClick={() => { this.startDraw(false) }}
+                      disabled={s.completedCircles.length >= maxCircles || (s.tmCircle != null && !s.tmCircle.done)}
+                    >Cheat Draw</button>
+                  </div>}
+                  <div style={{ 'textAlign': 'right' }}>
+                    <button
+                      onClick={() => { this.startDraw(true) }}
+                      disabled={!this.haveCost() || s.completedCircles.length >= maxCircles || (s.tmCircle != null && !s.tmCircle.done)}
+                    >Let's Draw It</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -802,6 +834,12 @@ class App extends React.Component {
     return this.circleFromSegments(segments, done, insideStart, { ...state.builder });
   }
 
+  cancelDraw = () => {
+    this.state.tmCircle = null
+    this.newSegments = [];
+    this.drawCanvas(this.canvas, null, this.transform, true)
+  }
+
   circleFromSegments = (segments, done, insideStart, params) => {
     if (params.dest == 0) {
       params.pressure = 0
@@ -829,6 +867,9 @@ class App extends React.Component {
     if (forceRedraw) {
       ctx.resetTransform();
       ctx.clearRect(0, 0, w, h);
+    }
+    if (tmCircle === null) {
+      return
     }
     ctx.setTransform(transform);
     ctx.lineCap = "round";
@@ -1009,12 +1050,13 @@ class App extends React.Component {
 
     this.setState(state => {
       let s = state;
-      if (debug) {
-        this.completeResearch(s);
-      }
       this.updateResources(s);
       this.checkProg(s);
       let allDone = true;
+      let drewSegment = false;
+      if (s.tmCircle === null) {
+        return {};
+      }
       for (const [segIndex, seg] of s.tmCircle.segments.entries()) {
         if (seg.done) {
           continue;
@@ -1027,7 +1069,7 @@ class App extends React.Component {
           let relX = this.mouseX - seg.center[0];
           let relY = this.mouseY - seg.center[1];
           let circle = (seg.start === 0) && (seg.end === 1)
-          let onSegSlop = .001 * seg.radius;
+          let onSegSlop = onArcSlop / seg.radius;
 
 
           if (this.mouseClicked && circleContains(seg.radius, relX, relY)) {
@@ -1084,12 +1126,12 @@ class App extends React.Component {
 
 
         } else if (seg.type === 'line') {
-          let onSegSlop = .001 * seg.len;
+          let onSegSlop = onLineSlop / seg.len;
           if (this.mouseClicked) {
             let [relPos, distSq] = lineRelPosDistSq(this.mouseX, this.mouseY, seg);
-            if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < .005) {
+            if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < distFudge) {
               let [prevRelPos, prevDistSq] = lineRelPosDistSq(this.prevX, this.prevY, seg);
-              if (prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < .005) {
+              if (prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < distFudge) {
                 let startPos = clamp(Math.min(relPos, prevRelPos) - onSegSlop);
                 let endPos = clamp(Math.max(relPos, prevRelPos) + onSegSlop);
                 addArc(progs, [startPos, endPos]);
@@ -1102,10 +1144,13 @@ class App extends React.Component {
             }
           }
         }
-        let deltaSize = relDelta * s.drawSpeed / seg.len;
-        newSegs.push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
-        progs[0][1] += deltaSize;
-        mergeArcs(progs, 0);
+        if (!drewSegment) {
+          let deltaSize = relDelta * s.drawSpeed / seg.len * drawFactor;
+          newSegs.push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
+          progs[0][1] += deltaSize;
+          mergeArcs(progs, 0);
+          drewSegment = true;
+        }
         newSegs.forEach((newSeg) => {
           progs.forEach((prog) => {
             if (overlaps(newSeg, prog)) {
@@ -1133,20 +1178,24 @@ class App extends React.Component {
   }
 
   updateResources = (s) => {
-    let baseIncome = .01
-    let baseConsumption = .0005
-    // TODO affect with s.drawnTotal,
-    // s.drawnDestTotals (by dest),
-    // Object.keys(s.drawnCricles[dest]).length
-    let [_, gain] = this.calcResource(s.res.earth, baseIncome, 1, 0, 1)
+    let baseIncome = .0001
+    let baseConsumption = .00005
+    for (const r of Object.keys(s.res)) {
+      s.res[r].gain = 0
+      s.res[r].loss = 0
+    }
+    let [_, gain] = this.calcResource(s, s.res.earth, baseIncome, { amount: 1, name: 'magic' }, 0, 1)
     s.res.earth.amount += gain
+    s.res.earth.gain = gain
     for (const c of s.completedCircles) {
       let [sRes, dRes] = [sourceRes(c), destRes(c)];
-      let [cost, gain] = this.calcResource(s.res[dRes], baseConsumption, s.res[sRes].amount, c.params.pressure, c.params.efficiency)
+      let [cost, gain] = this.calcResource(s, s.res[dRes], baseConsumption, s.res[sRes], c.params.pressure, c.params.efficiency)
       if (isNaN(gain) || isNaN(cost)) {
         console.log('create ', dRes, ' +', gain, ', ', sRes, ' -', cost)
         throw new Error('nan')
       }
+      s.res[sRes].loss += cost;
+      s.res[dRes].gain += gain
       s.res[dRes].amount += gain
       if (!s.res[dRes].visible) {
         s.res[dRes].visible = true
@@ -1155,7 +1204,7 @@ class App extends React.Component {
     }
   }
 
-  calcResource = (resource, amount, sourceAmount, pressure, efficiency) => {
+  calcResource = (s, resource, amount, source, pressure, efficiency) => {
     if (resource.amount > .9999 * resource.cap) {
       resource.amount = resource.cap;
       return [0, 0];
@@ -1167,11 +1216,41 @@ class App extends React.Component {
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
-    if (sourceAmount < .5) {
-      sourceMul = 1 - Math.cos(pi * sourceAmount);
+    if (source.amount < .5) {
+      sourceMul = 1 - Math.cos(pi * source.amount);
     }
-    efficiency = [.1, .2, .3, .5, 1][efficiency] * 100
-    return [sourceMul * amount, destMul * sourceMul * amount * efficiency]
+    efficiency = [.1, .2, .3, .5, 1][efficiency] * 20
+    if (resource.name == 'ideas') {
+      efficiency *= resources[source.name].ideaEfficiency
+    }
+    if (source.name != 'magic') {
+      efficiency *= Math.max(1, Math.log10(s.drawnTotal + 1) / Math.log10(20))
+      efficiency *= Math.max(1, Math.log10(s.drawnDestTotals[resource.name] + 1))
+      efficiency *= Math.sqrt(Object.keys(s.drawnCircles[resource.name]).length)
+    }
+    return [sourceMul * amount * destMul, destMul * amount * efficiency]
+  }
+
+  getBuildCost = (builder) => {
+    let dest = builder.dest;
+    let source = builder.source;
+    let eff = builder.efficiency;
+    let press = dest == 0 ? 0 : builder.pressure;
+    let sourceCost = .15 + (dest / maxDest) * .35 +
+      ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .5
+    let destCost = 0;
+    if (eff > 0 || press > 0) {
+      destCost = ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .75;
+    }
+    if (dest == source) {
+      return {
+        [sourceRes(builder)]: Math.max(sourceCost, destCost),
+      }
+    }
+    return {
+      [sourceRes(builder)]: sourceCost,
+      [destRes(builder)]: destCost,
+    }
   }
 
   mouseMove = (e) => {
@@ -1416,8 +1495,7 @@ export function mergeArcs(arcs, index) {
 
 function circleContains(radius, x, y) {
   let sq = x * x + y * y;
-  let slop = .02
-  return sq >= (radius - slop) ** 2 && sq <= (radius + slop) ** 2;
+  return sq >= (radius - distFudge) ** 2 && sq <= (radius + distFudge) ** 2;
 }
 
 // [relative position along line segment, distance squared]
