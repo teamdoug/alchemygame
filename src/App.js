@@ -145,8 +145,9 @@ const maxCircles = 12
 const drawFactor = 1
 const efficiencyFactor = 1
 const distFudge = .05
+const lineDistFudge = .001
 const onArcSlop = .001
-const onLineSlop = .001
+const onLineSlop = .0001
 
 
 function Resource(props) {
@@ -219,7 +220,7 @@ class App extends React.Component {
     this.undrawnCompleted = new Map();
     this.forceRedraw = true;
     this.resourceGainLoss = Object.keys(resources).reduce((result, r) => {
-      result[r] = { gainFrac: -1, lossFrac: -1 }
+      result[r] = { gainFrac: -1, lossFrac: -1, gain: -1, loss: -1 }
       return result
     }, {})
     this.completedTransform = new DOMMatrix().translate(completedSize / 2, completedSize / 2).scale(completedSize * .9 / 2, -completedSize * .9 / 2);
@@ -437,17 +438,18 @@ class App extends React.Component {
                 {Object.keys(resources).filter((name) => {
                   return s.res[name].visible
                 }).map((name) => {
+                  let gl = this.resourceGainLoss[name];
                   return (<tr key={name}>
                     <td>{name.charAt(0).toUpperCase() + name.slice(1)}</td>
                     <td style={{ width: '100%' }}>
                       <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap} shiny={s.res[name].amount == s.res[name].cap}></Resource>
                     </td>
                     <td><ResourceDiff
-                      gainFrac={this.resourceGainLoss[name].gainFrac}
-                      lossFrac={this.resourceGainLoss[name].lossFrac}></ResourceDiff></td>
+                      gainFrac={gl.gainFrac}
+                      lossFrac={gl.lossFrac}></ResourceDiff></td>
                     <td><button onClick={() => s.res[name].amount += .1}>+.1</button>
                       <button onClick={() => s.res[name].amount -= .1}>-.1</button></td>
-                    <td>+{s.res[name].gain.toFixed(6)} -{s.res[name].loss.toFixed(6)}</td>
+                    <td>+{(gl.gain > -1 ? gl.gain : s.res[name].gain).toFixed(6)} -{(gl.loss > -1 ? gl.loss : s.res[name].loss).toFixed(6)}</td>
                   </tr>)
                 })}
               </tbody>
@@ -892,12 +894,16 @@ class App extends React.Component {
       this.resourceGainLoss[dest].gainFrac = gainFrac;
       this.resourceGainLoss[source].lossFrac = lossFrac;
     }
+    this.resourceGainLoss[dest].gain = c.gain;
+    this.resourceGainLoss[source].loss = c.loss;
   }
 
   completedMouseLeave = (c) => {
     const [source, dest] = [sourceRes(c), destRes(c)]
     this.resourceGainLoss[dest].gainFrac = -1;
     this.resourceGainLoss[source].lossFrac = -1;
+    this.resourceGainLoss[dest].gain = -1;
+    this.resourceGainLoss[source].loss = -1;
   }
 
   circleFromSegments = (segments, done, insideStart, params) => {
@@ -1189,9 +1195,9 @@ class App extends React.Component {
           let onSegSlop = onLineSlop / seg.len;
           if (this.mouseClicked) {
             let [relPos, distSq] = lineRelPosDistSq(this.mouseX, this.mouseY, seg);
-            if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < distFudge) {
+            if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < lineDistFudge) {
               let [prevRelPos, prevDistSq] = lineRelPosDistSq(this.prevX, this.prevY, seg);
-              if (prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < distFudge) {
+              if (prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < lineDistFudge) {
                 let startPos = clamp(Math.min(relPos, prevRelPos) - onSegSlop);
                 let endPos = clamp(Math.max(relPos, prevRelPos) + onSegSlop);
                 addArc(progs, [startPos, endPos]);
