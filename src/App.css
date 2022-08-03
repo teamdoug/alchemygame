@@ -23,7 +23,7 @@ body {
 }
 
 .panel {
-  background-color: rgba(255,255,255, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .leftPanel {
@@ -46,7 +46,7 @@ canvas.destroySelect {
 }
 
 #builderPanel {
-  background-color: rgba(47,47,47,.95);
+  background-color: rgba(47, 47, 47, .95);
   position: absolute;
   left: 0px;
   top: 0px;
@@ -59,7 +59,7 @@ canvas.destroySelect {
 }
 
 #selectorPanel {
-  background-color: rgba(47,47,47,.95);
+  background-color: rgba(47, 47, 47, .95);
   position: absolute;
   left: 0px;
   top: 0px;
@@ -72,6 +72,7 @@ canvas.destroySelect {
     bottom: 0;
     height: 150px;
   }
+
   .leftPanel {
     overflow: hidden;
   }
@@ -126,6 +127,47 @@ canvas.destroySelect {
   position: relative;
 }
 
-.resource > div {
+.resource>div {
   border-radius: 6px;
+}
+
+.resourceDiff {
+  position: relative;
+  margin-left: 4px;
+}
+
+.resourceDiff .hidden {
+  visibility: hidden;
+}
+
+.resourceDiff div {
+  position: relative;
+}
+
+.resourceDiff .up {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 6px solid green;
+  left: -2px;
+  top: -2px;
+}
+
+.resourceDiff .down {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid red;
+  left: -2px;
+  top: -2px;
+}
+
+.resourceDiff .neutral {
+  width: 8px;
+  height: 2px;
+  background-color: white;
+  left: -2px;
+  top: -2px;
 }

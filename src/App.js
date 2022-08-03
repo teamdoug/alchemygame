@@ -163,6 +163,28 @@ function Resource(props) {
     ></div></div>
 }
 
+function ResourceDiff(props) {
+  let amount = -1
+  let direction = " up hidden "
+  if (props.gainFrac > -1) {
+    direction = " up ";
+    amount = props.gainFrac;
+  }
+  if (props.lossFrac > -1) {
+    direction = " down ";
+    amount = props.lossFrac;
+  }
+  if (amount === 0) {
+    direction = " neutral "
+  }
+  amount = (Math.abs(amount) > .5) ? 3 : ((Math.abs(amount) > .1) ? 2 : 1)
+  return <div className="resourceDiff">
+    <div className={direction + " top " + (amount < 3 ? "hidden" : "")}></div>
+    <div className={direction + " mid "}></div>
+    <div className={direction + " bot " + (amount < 2 ? "hidden" : "")}></div>
+  </div>
+}
+
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -196,6 +218,10 @@ class App extends React.Component {
     this.completedCanvases = {};
     this.undrawnCompleted = new Map();
     this.forceRedraw = true;
+    this.resourceGainLoss = Object.keys(resources).reduce((result, r) => {
+      result[r] = { gainFrac: -1, lossFrac: -1 }
+      return result
+    }, {})
     this.completedTransform = new DOMMatrix().translate(completedSize / 2, completedSize / 2).scale(completedSize * .9 / 2, -completedSize * .9 / 2);
   };
 
@@ -416,6 +442,9 @@ class App extends React.Component {
                     <td style={{ width: '100%' }}>
                       <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap} shiny={s.res[name].amount == s.res[name].cap}></Resource>
                     </td>
+                    <td><ResourceDiff
+                      gainFrac={this.resourceGainLoss[name].gainFrac}
+                      lossFrac={this.resourceGainLoss[name].lossFrac}></ResourceDiff></td>
                     <td><button onClick={() => s.res[name].amount += .1}>+.1</button>
                       <button onClick={() => s.res[name].amount -= .1}>-.1</button></td>
                     <td>+{s.res[name].gain.toFixed(6)} -{s.res[name].loss.toFixed(6)}</td>
@@ -430,7 +459,10 @@ class App extends React.Component {
             <div id="#selector">
               <div>
                 {s.completedCircles.map((c) => {
-                  return <canvas ref={this.completedCanvases[c.index]} key={c.index}
+                  return <canvas
+                    onMouseEnter={() => { this.completedMouseEnter(c) }}
+                    onMouseLeave={() => { this.completedMouseLeave(c) }}
+                    ref={this.completedCanvases[c.index]} key={c.index}
                     className={"completedCircle " + (s.selectedCirclesDelete[c.index] ? 'destroySelect' : '')}
                     onClick={s.selectToDelete ? (
                       () => this.setState({
@@ -840,6 +872,34 @@ class App extends React.Component {
     this.drawCanvas(this.canvas, null, this.transform, true)
   }
 
+  completedMouseEnter = (c) => {
+    const [source, dest] = [sourceRes(c), destRes(c)]
+    let gainFrac = c.gain;
+    if (this.state.res[dest].gain > 0) {
+      gainFrac /= this.state.res[dest].gain;
+    }
+    let lossFrac = c.loss;
+    if (this.state.res[source].loss > 0) {
+      lossFrac /= this.state.res[source].loss;
+    }
+    if (source === dest) {
+      if (c.gain > c.loss) {
+        this.resourceGainLoss[dest].gainFrac = gainFrac;
+      } else {
+        this.resourceGainLoss[source].lossFrac = lossFrac;
+      }
+    } else {
+      this.resourceGainLoss[dest].gainFrac = gainFrac;
+      this.resourceGainLoss[source].lossFrac = lossFrac;
+    }
+  }
+
+  completedMouseLeave = (c) => {
+    const [source, dest] = [sourceRes(c), destRes(c)]
+    this.resourceGainLoss[dest].gainFrac = -1;
+    this.resourceGainLoss[source].lossFrac = -1;
+  }
+
   circleFromSegments = (segments, done, insideStart, params) => {
     if (params.dest == 0) {
       params.pressure = 0
@@ -1184,27 +1244,30 @@ class App extends React.Component {
       s.res[r].gain = 0
       s.res[r].loss = 0
     }
-    let [_, gain] = this.calcResource(s, s.res.earth, baseIncome, { amount: 1, name: 'magic' }, 0, 1)
+    let [_, gain] = this.calcResource(s, s.res.earth, baseIncome, { amount: 1, name: 'magic' }, null)
     s.res.earth.amount += gain
     s.res.earth.gain = gain
     for (const c of s.completedCircles) {
       let [sRes, dRes] = [sourceRes(c), destRes(c)];
-      let [cost, gain] = this.calcResource(s, s.res[dRes], baseConsumption, s.res[sRes], c.params.pressure, c.params.efficiency)
-      if (isNaN(gain) || isNaN(cost)) {
-        console.log('create ', dRes, ' +', gain, ', ', sRes, ' -', cost)
+      let [loss, gain] = this.calcResource(s, s.res[dRes], baseConsumption, s.res[sRes], c)
+      if (isNaN(gain) || isNaN(loss)) {
+        console.log('create ', dRes, ' +', gain, ', ', sRes, ' -', loss)
         throw new Error('nan')
       }
-      s.res[sRes].loss += cost;
-      s.res[dRes].gain += gain
+      s.res[sRes].loss += loss;
+      s.res[dRes].gain += gain;
+      c.gain = gain;
+      c.loss = loss;
       s.res[dRes].amount += gain
       if (!s.res[dRes].visible) {
         s.res[dRes].visible = true
       }
-      s.res[sRes].amount -= cost
+      s.res[sRes].amount -= loss
     }
   }
 
-  calcResource = (s, resource, amount, source, pressure, efficiency) => {
+  calcResource = (s, resource, amount, source, c) => {
+    let { pressure, efficiency } = (c && c.params) || { pressure: 0, efficiency: 1 };
     if (resource.amount > .9999 * resource.cap) {
       resource.amount = resource.cap;
       return [0, 0];
@@ -1212,7 +1275,7 @@ class App extends React.Component {
     let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
     if (resource.name != 'ideas' && resource.amount > .5) {
-      let exp = [3, 2, 1, 0.5, 1 / 3][pressure];
+      let exp = [5, 3, 1, 0.5, 1 / 3][pressure];
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
