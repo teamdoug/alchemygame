@@ -2,19 +2,16 @@
 
 ## TODO
 * Why does having more circles make existing circles brighter?
-* Indicate already-created circles on the builder, maybe even on sliders if all variations done?
-* Circle selector
-* Split power among circles????
 * Animate circle creation
 * Animate and fix builder button
 * Delete circles
 * Mouseover circle info (which resources increased/decreased)
-* Circles buff their own type
 * Dog gives hints and says useless things (haha)
 * better glyphs at max pressure/efficiency
+* drawing harder for higher pressure/efficiency (glyphs more precise??)
+    * shift lines to be on outside and inside instead of through and inside?
 * flash to indicate unlocks
 * remove cost for things already built
-* bonuses for already built
 * test colorblind (names on costs?)
 * confirm reset
 ### Mobile
