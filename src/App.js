@@ -1,5 +1,6 @@
 import './App.css';
 import React from "react";
+import { ReactComponent as Lily } from './lily_crop.svg';
 
 const debug = true;
 const forceReset = false;
@@ -59,6 +60,94 @@ const resMap = {
   0: ['ideas', 'earth', 'water', 'plants', 'animals', 'dogs'],
   1: ['ideas', 'heaven', 'light', 'air', 'clouds', 'stars'],
 }
+
+const story = [
+  ['story', 'Woof! In the beginning God created the heavens and the earth. ' +
+  '6 days later, Dog was playing with a frisbee while God rested when she realized it ' +
+  'wasn\'t actually a frisbee. It was a transmutation circle God had used ' +
+  'to create the world. Dog thought she could make a better world, so she decided ' +
+  'to take some of the earth God had created to build her own transmutation circles. ' +
+  'She was going to make her own Doggy Dog World, but everything will go a little better with Dog\'s best friend, Human.'],
+
+  ['dog', 'With some of this earth, we can build a template for a circle. Once we draw ' +
+  'the circle, it will give me some inspiration for some new patterns.'],
+
+  ['dog', 'I\'ll start drawing the circle. It\'ll be finished in no time.'],
+ 
+  ['dog', 'Turns out drawing with my paws is really slow. I\'ll get better ' +
+  'with practice, but do you think you can help me a little, Human?'],
+
+  ['dog', 'That\'s a nice circle. It\'s starting to give me some inspiration already. ' +
+  'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.'],
+
+  ['dog', 'Ok, what if we take this earth, and use it to make...'],
+ 
+  ['dog', 'MORE EARTH'],
+
+  ['dog', 'I amaze myself sometimes. You can use the builder to change what the circle will ' +
+  'create now. We could make more earth, or we can make some more inspiration. ' +
+  'I think I\'ll need a lot more inspiration for my next idea. Thinking about it, more earth was kind of ' +
+  'obvious, really.'],
+
+  ['dog', 'I\'ve been thinking hard, and what if we made something new? What if we took ' +
+  'this earth and transformed it into water? Pretty neat, right?'],
+
+  ['dog', 'Also, I\'ve noticed that we\'ve been hard at work making earth and more earth, but we\'re not filling the world with as much earth ' +
+  'as I was expecting. It seems the void is pushing back on the transmutation when there\'s ' +
+  'too much. This seems like a future problem for now, but I\'ll start thinking about ways to push harder.'],
+
+  ['dog', 'In the meantime, we\'re going to need some water before I can come up with my next idea.'],
+
+  ['dog', 'This water is great for swimming in! Less good for bathing in. We can use this water to make ' +
+  'more inspiration, more earth, or even more water. I\'ll let you decide which.'],
+
+  ['dog', 'There are two things I\'m thinking of right now. One will give us a new resource, and ' +
+  'one will help us make things faster. Which do you think I should work on?'],
+
+  ['dog', 'If we change our outer circle some, I think we can make our transmutations more ' +
+  'efficient. The circles will cost more, but they\'ll generate more for the same input.'],
+
+  ['dog', 'Only one thing left to think about! I\'ll figure out what resource to make next.'],
+
+  ['dog', 'Oh boy! We can make plants now! Grass is my favorite plant! It\'s great for eating ' +
+  'and for pooping in. Maybe not at the same time...' ],
+
+  ['dog', 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
+  'our transmutation circles push harder against the void. Doggy Dog World is going to be a ' +
+  'world full of things, so we\'ll need to figure that out eventually.'],
+
+  ['dog', 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+
+  ['dog', 'What should I ponder next?']
+
+  ['dog', 'By changing our inner circle, the circle will push harder against the void, helping ' +
+  'us fill the world better.'],
+
+  ['dog', 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+
+  ['dog', 'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.'],
+
+  ['dog', 'With some decorations around our outer anchors, the circle will be more efficient.'],
+
+  ['dog', 'With stabilizing lines in our inner circle, the circle will press harder against the void.'],
+
+  ['dog', 'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
+  'love efficiency.'],
+
+  ['dog', 'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
+  'possible. Let\'s fill the world!'],
+ 
+  ['dog', 'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
+  'creation.'],
+
+  ['dog', 'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
+  'world with earth, water, plants, animals, and dogs, we\'ll have a real Doggy Dog World.'],
+
+  ['dog', 'What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!']
+  
+]
+
+
 
 const PROG = {
   'dest': [{
@@ -402,6 +491,7 @@ class App extends React.Component {
       <div id="verticalFlex">
         <div id="flex">
           <div className="panel leftPanel">
+            <Lily style={{width: '80px', height: 'auto', marginLeft: '-5px'}} />
             <div style={{ display: "flex" }}>
               <div style={{ flexGrow: 1 }}>
                 {s.gameDone && <span>You win!</span>}

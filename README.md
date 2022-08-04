@@ -26,6 +26,10 @@ plants + (water + light) -> plants
 animals + (water + plants) -> animals
 dogs + (animals) -> dogs
 
+Made for Incremental Game Jam 5
+Game by Heartosis
+Dog Art by Greg
+Special Thanks to Wife
 
 # Getting Started with Create React App
 

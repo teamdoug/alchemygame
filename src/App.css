@@ -175,3 +175,8 @@ canvas.destroySelect {
   left: -2px;
   top: -2px;
 }
+
+#layer3 path {
+  stroke: #420045 !important;
+  fill: purple !important;
+}
