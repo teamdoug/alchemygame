@@ -1217,7 +1217,9 @@ class App extends React.Component {
           }
         }
         if (!drewSegment) {
-          let deltaSize = relDelta * s.drawSpeed / seg.len * drawFactor;
+          let drawnBonus = (s.drawnTotal + 1) ** .4
+
+          let deltaSize = relDelta * s.drawSpeed / seg.len * drawFactor * drawnBonus;
           newSegs.push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
           progs[0][1] += deltaSize;
           mergeArcs(progs, 0);
@@ -1299,7 +1301,6 @@ class App extends React.Component {
       efficiency *= resources[source.name].ideaEfficiency
     }
     if (source.name != 'magic') {
-      efficiency *= Math.max(1, Math.log10(s.drawnTotal + 1) / Math.log10(20))
       efficiency *= Math.max(1, Math.log10(s.drawnDestTotals[resource.name] + 1))
       efficiency *= Math.sqrt(Object.keys(s.drawnCircles[resource.name]).length)
     }
