@@ -62,91 +62,119 @@ const resMap = {
 }
 
 const story = [
-  ['story', 'Woof! In the beginning God created the heavens and the earth. ' +
-  '6 days later, Dog was playing with a frisbee while God rested when she realized it ' +
-  'wasn\'t actually a frisbee. It was a transmutation circle God had used ' +
-  'to create the world. Dog thought she could make a better world, so she decided ' +
-  'to take some of the earth God had created to build her own transmutation circles. ' +
-  'She was going to make her own Doggy Dog World, but everything will go a little better with Dog\'s best friend, Human.'],
+  [{ dest: 0 }, {}, 'Woof! In the beginning God created the heavens and the earth. ' +
+    '6 days later, Dog was playing with a frisbee while God rested when she realized it ' +
+    'wasn\'t actually a frisbee. It was a transmutation circle God had used ' +
+    'to create the world. Dog thought she could make a better world, so she decided ' +
+    'to take some of the earth God had created to build her own transmutation circles. ' +
+    'She was going to make her own Doggy Dog World, but everything will go a little better with Dog\'s best friend, Human.'],
 
-  ['dog', 'With some of this earth, we can build a template for a circle. Once we draw ' +
-  'the circle, it will give me some inspiration for some new patterns.'],
+  [{ dest: 0 }, {}, 'With some of this earth, we can build a template for a circle. Once we draw ' +
+    'the circle, it will give me some inspiration for some new patterns.'],
 
-  ['dog', 'I\'ll start drawing the circle. It\'ll be finished in no time.'],
- 
-  ['dog', 'Turns out drawing with my paws is really slow. I\'ll get better ' +
-  'with practice, but do you think you can help me a little, Human?'],
+  [{ dest: 0 }, { startedDrawing: true }, 'I\'ll start drawing the circle. It\'ll be finished in no time.'],
 
-  ['dog', 'That\'s a nice circle. It\'s starting to give me some inspiration already. ' +
-  'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.'],
+  // Something to trigger this a little later and not require confirmation?
+  [{ dest: 0 }, { startedDrawing: true }, 'Turns out drawing with my paws is really slow. I\'ll get better ' +
+    'with practice, but do you think you can help me a little, Human?'],
 
-  ['dog', 'Ok, what if we take this earth, and use it to make...'],
- 
-  ['dog', 'MORE EARTH'],
+  [{ dest: 0 }, { drawnTotal: 1 }, 'That\'s a nice circle. It\'s starting to give me some inspiration already. ' +
+    'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.'],
 
-  ['dog', 'I amaze myself sometimes. You can use the builder to change what the circle will ' +
-  'create now. We could make more earth, or we can make some more inspiration. ' +
-  'I think I\'ll need a lot more inspiration for my next idea. Thinking about it, more earth was kind of ' +
-  'obvious, really.'],
+  [{ dest: 0 }, { researchComplete: true }, 'Ok, what if we take this earth, and use it to make...'],
 
-  ['dog', 'I\'ve been thinking hard, and what if we made something new? What if we took ' +
-  'this earth and transformed it into water? Pretty neat, right?'],
+  [{ dest: 0 }, { researchComplete: true }, 'MORE EARTH'],
 
-  ['dog', 'Also, I\'ve noticed that we\'ve been hard at work making earth and more earth, but we\'re not filling the world with as much earth ' +
-  'as I was expecting. It seems the void is pushing back on the transmutation when there\'s ' +
-  'too much. This seems like a future problem for now, but I\'ll start thinking about ways to push harder.'],
+  // Complete research after this?
+  [{ dest: 0 }, { researchComplete: true }, 'I amaze myself sometimes. You can use the builder to change what the circle will ' +
+    'create now. We could make more earth, or we can make some more inspiration. ' +
+    'I think I\'ll need a lot more inspiration for my next idea. Thinking about it, more earth was kind of ' +
+    'obvious, really.'],
 
-  ['dog', 'In the meantime, we\'re going to need some water before I can come up with my next idea.'],
+  [{ dest: 1 }, { researchComplete: true }, 'I\'ve been thinking hard, and what if we made something new? What if we took ' +
+    'this earth and transformed it into water? Pretty neat, right?'],
 
-  ['dog', 'This water is great for swimming in! Less good for bathing in. We can use this water to make ' +
-  'more inspiration, more earth, or even more water. I\'ll let you decide which.'],
+  [{ dest: 1 }, { researchComplete: true }, 'Also, I\'ve noticed that we\'ve been hard at work making earth and more earth, but we\'re not filling the world with as much earth ' +
+    'as I was expecting. It seems the void is pushing back on the transmutation when there\'s ' +
+    'too much. This seems like a future problem for now, but I\'ll start thinking about ways to push harder.'],
 
-  ['dog', 'There are two things I\'m thinking of right now. One will give us a new resource, and ' +
-  'one will help us make things faster. Which do you think I should work on?'],
+  // Complete research
+  [{ dest: 1 }, { researchComplete: true }, 'In the meantime, we\'re going to need some water before I can come up with my next idea.'],
 
-  ['dog', 'If we change our outer circle some, I think we can make our transmutations more ' +
-  'efficient. The circles will cost more, but they\'ll generate more for the same input.'],
+  [{}, { madewater: true }, 'This water is great for swimming in! Less good for bathing in. We can use this water to make ' +
+    'more inspiration, more earth, or even more water. I\'ll let you decide which.'],
 
-  ['dog', 'Only one thing left to think about! I\'ll figure out what resource to make next.'],
+  // Present research decision
+  [{}, { madewater: true }, 'There are two things I\'m thinking of right now. One will give us a new resource, and ' +
+    'one will help us make things faster. Which do you think I should work on?'],
 
-  ['dog', 'Oh boy! We can make plants now! Grass is my favorite plant! It\'s great for eating ' +
-  'and for pooping in. Maybe not at the same time...' ],
+  [{}, { curResearch: 'efficiency', researchComplete: true }, 'If we change our outer circle some, I think we can make our transmutations more ' +
+    'efficient. The circles will cost more, but they\'ll generate more for the same input.'],
 
-  ['dog', 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
-  'our transmutation circles push harder against the void. Doggy Dog World is going to be a ' +
-  'world full of things, so we\'ll need to figure that out eventually.'],
+  [{ efficiency: 1, dest: 1 }, {}, 'Only one thing left to think about! I\'ll figure out what resource to make next.'],
 
-  ['dog', 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+  [{ dest: 1 }, { curResearch: 'dest', researchComplete: true }, 'Oh boy! We can make plants now! Grass is my favorite plant! It\'s great for eating ' +
+    'and for pooping in. Maybe not at the same time...'],
 
-  ['dog', 'What should I ponder next?']
+  // Complete research + Present research decision
+  [{ dest: 1 }, { curResearch: 'dest', researchComplete: true }, 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
+    'our transmutation circles push harder against the void. Doggy Dog World is going to be a ' +
+    'world full of things, so we\'ll need to figure that out eventually.'],
 
-  ['dog', 'By changing our inner circle, the circle will push harder against the void, helping ' +
+  [{efficiency: 2}, {}, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+
+  // Make this one repeatable? Or done specially in general??
+  [{ dest: 2}, {}, 'What should I ponder next?']
+
+  [{pressure: 0}, { curResearch: 'pressure', researchComplete: true },  'By changing our inner circle, the circle will push harder against the void, helping ' +
   'us fill the world better.'],
 
-  ['dog', 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+  [{efficiency: 1}, { curResearch: 'efficiency', researchComplete: true }, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
 
-  ['dog', 'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.'],
+  [{pressure: 1}, { curResearch: 'pressure', researchComplete: true },  'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.'],
 
-  ['dog', 'With some decorations around our outer anchors, the circle will be more efficient.'],
+  [{efficiency: 2}, { curResearch: 'efficiency', researchComplete: true }, 'With some decorations around our outer anchors, the circle will be more efficient.'],
 
-  ['dog', 'With stabilizing lines in our inner circle, the circle will press harder against the void.'],
+  [{pressure: 2}, { curResearch: 'pressure', researchComplete: true }, 'With stabilizing lines in our inner circle, the circle will press harder against the void.'],
 
-  ['dog', 'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
-  'love efficiency.'],
+  [{efficiency: 3}, { curResearch: 'efficiency', researchComplete: true }, 'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
+    'love efficiency.'],
 
-  ['dog', 'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
-  'possible. Let\'s fill the world!'],
- 
-  ['dog', 'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
-  'creation.'],
+  [{pressure: 3}, { curResearch: 'pressure', researchComplete: true }, , 'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
+    'possible. Let\'s fill the world!'],
 
-  ['dog', 'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
-  'world with earth, water, plants, animals, and dogs, we\'ll have a real Doggy Dog World.'],
+  [{dest: 3}, { curResearch: 'dest', researchComplete: true },  'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
+    'creation.'],
 
-  ['dog', 'What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!']
-  
+  [{dest: 4}, { curResearch: 'dest', researchComplete: true }, 'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
+    'world with earth, water, plants, animals, and dogs, we\'ll have a real Doggy Dog World.'],
+
+    // Make this a dialog box or thing
+  [{}, {gameDone: true}, 'What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!']
+
 ]
 
+const sayings = [
+  [{ dest: 1 }, 'I bet I could dig a really big hole in this earth!'],
+  [{ dest: 2 }, 'Water, water everywhere, nor any drop to- hey, puddle! Spash!'],
+  [{ dest: 2 }, 'Splish, splash, I was not taking a bath. Gross.'],
+  [{ dest: 2 }, 'It would be great if they made some kind of thing to watch where the whole world is water and a man had gills.'],
+  [{ efficiency: 1 }, 'Speaking of efficiency... How many dogs does it take to change a- hey, puddle! Splash!'],
+  [{ dest: 3 }, 'Do dogs get grass stains? '],
+  [{ dest: 3 }, 'You know what grass is great for? Naps.'],
+  [{ pressure: 1 }, 'What do you call a circle inside a circle inside a- hey, puddle! Splash!'],
+  [{ efficiency: 2 }, 'With all this time I\'m saving, I should think about taking a nap.'],
+  [{ efficiency: 2 }, 'zzz... Oh man, I just thought of a great game! I can chase my own tail!'],
+  [{ dest: 4 }, 'I\'m getting a little hungry. I wonder where God is with the chicken jerky. Mmm. Chicken.'],
+  [{ dest: 4 }, 'Why did the chicken cross the road? What a silly question. We haven\'t made roads!'],
+  [{ efficiency: 3 }, 'zzz ... zzz ... bone ... zzz ... zzz ... being efficient is hard work.'],
+  [{ pressure: 2 }, 'Is it safe to go into the void? Or will that be the end of- hey, puddle! Splash!'],
+  [{ pressure: 2 }, 'Void ... so dark ... perfect for zzz ... zzz ... bone ... zzz ... zzz ...'],
+  [{ pressure: 3 }, 'Does this void make me look fat?'],
+  [{ dest: 4 }, 'Now I understand why it\'s a circle of life!'],
+  [{ dest: 5 }, 'I wonder how that dog smells.'],
+  [{ dest: 5 }, 'Hey dog, don\'t pee on my tree! You keep that up, I\'ll have to- hey, puddle! Spash!'],
+]
 
 
 const PROG = {
@@ -356,6 +384,7 @@ class App extends React.Component {
       circleIndex: 0,
       showSelector: false,
       showBuilder: false,
+      seenStory: {},
       res: Object.keys(resources).reduce((result, r) => {
         result[r] = {
           amount: 0,
@@ -367,7 +396,12 @@ class App extends React.Component {
         }
         return result
       }, {}),
+      startedDrawing: false,
       selectToDelete: false,
+      madewater: false,
+      madeplants: false,
+      madeanimals: false,
+      madedogs: false,
       selectedCirclesDelete: [],
     }
     state.res.earth.visible = true
@@ -402,6 +436,7 @@ class App extends React.Component {
     }
     state.drawnDestTotals[destName]++
     state.drawnTotal++
+    state['made' + dest] = true
     state.completedCircles.push(circle);
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
@@ -460,7 +495,7 @@ class App extends React.Component {
       })
     }
     let tmCircle = this.clearCircle(this.state.previewCircle);
-    this.setState({ tmCircle, showBuilder: false })
+    this.setState({ tmCircle, showBuilder: false, startedDrawing: true })
     this.forceRedraw = true;
     this.newSegments = tmCircle.segments.map(() => []);
   }
@@ -491,7 +526,7 @@ class App extends React.Component {
       <div id="verticalFlex">
         <div id="flex">
           <div className="panel leftPanel">
-            <Lily style={{width: '80px', height: 'auto', marginLeft: '-5px'}} />
+            <Lily style={{ width: '80px', height: 'auto', marginLeft: '-5px' }} />
             <div style={{ display: "flex" }}>
               <div style={{ flexGrow: 1 }}>
                 {s.gameDone && <span>You win!</span>}
@@ -1213,8 +1248,8 @@ class App extends React.Component {
     this.setState(state => {
       let s = state;
       this.updateResources(s);
-      document.getElementById("progress").children[1].offset.baseVal = s.res.ideas.cap-s.res.ideas.amount
-      document.getElementById("progress").children[2].offset.baseVal = s.res.ideas.cap-s.res.ideas.amount
+      document.getElementById("progress").children[1].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
+      document.getElementById("progress").children[2].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
       let visibility = 'visible'
       if (s.res.ideas.amount < s.res.ideas.cap) {
         visibility = 'hidden';

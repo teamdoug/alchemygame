@@ -26,6 +26,7 @@ plants + (water + light) -> plants
 animals + (water + plants) -> animals
 dogs + (animals) -> dogs
 
+credits:
 Made for Incremental Game Jam 5
 Game by Heartosis
 Dog Art by Greg
