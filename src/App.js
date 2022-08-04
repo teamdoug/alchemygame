@@ -1213,6 +1213,15 @@ class App extends React.Component {
     this.setState(state => {
       let s = state;
       this.updateResources(s);
+      document.getElementById("progress").children[1].offset.baseVal = s.res.ideas.cap-s.res.ideas.amount
+      document.getElementById("progress").children[2].offset.baseVal = s.res.ideas.cap-s.res.ideas.amount
+      let visibility = 'visible'
+      if (s.res.ideas.amount < s.res.ideas.cap) {
+        visibility = 'hidden';
+      }
+
+      document.getElementById("layer3").children[5].style.visibility = visibility
+      document.getElementById("layer3").children[6].style.visibility = visibility
       this.checkProg(s);
       let allDone = true;
       let drewSegment = false;
