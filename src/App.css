@@ -107,8 +107,12 @@ canvas.destroySelect {
     border-color: #ffffff;
   }
 
-  100% {
+  50% {
     border-color: #FFD700;
+  }
+
+  100% {
+    border-color: #ffffff;
   }
 }
 

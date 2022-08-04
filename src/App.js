@@ -958,6 +958,9 @@ class App extends React.Component {
             planPaths.push(planPath);
           }
           for (const [s, e] of seg.progress) {
+            if (s === e) {
+              continue
+            }
             let donePath = new Path2D();
             let diff = seg.end - seg.start;
             let arcStart = diff * s + seg.start;
@@ -978,6 +981,9 @@ class App extends React.Component {
             planPaths.push(planPath);
           }
           for (const [s, e] of seg.progress) {
+            if (s === e) {
+              continue
+            }
             let donePath = new Path2D();
             let diffX = seg.end[0] - seg.start[0];
             let diffY = seg.end[1] - seg.start[1];
