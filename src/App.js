@@ -1,6 +1,8 @@
 import './App.css';
 import React from "react";
 import { ReactComponent as Lily } from './lily_crop.svg';
+import { ReactComponent as Pause } from './pause.svg';
+
 
 const debug = true;
 const forceReset = false;
@@ -121,36 +123,36 @@ const story = [
     'our transmutation circles push harder against the void. Doggy Dog World is going to be a ' +
     'world full of things, so we\'ll need to figure that out eventually.'],
 
-  [{efficiency: 2}, {}, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+  [{ efficiency: 2 }, {}, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
 
   // Make this one repeatable? Or done specially in general??
-  [{ dest: 2}, {}, 'What should I ponder next?']
+  [{ dest: 2 }, {}, 'What should I ponder next?']
 
-  [{pressure: 0}, { curResearch: 'pressure', researchComplete: true },  'By changing our inner circle, the circle will push harder against the void, helping ' +
+  [{ pressure: 0 }, { curResearch: 'pressure', researchComplete: true }, 'By changing our inner circle, the circle will push harder against the void, helping ' +
   'us fill the world better.'],
 
-  [{efficiency: 1}, { curResearch: 'efficiency', researchComplete: true }, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+  [{ efficiency: 1 }, { curResearch: 'efficiency', researchComplete: true }, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
 
-  [{pressure: 1}, { curResearch: 'pressure', researchComplete: true },  'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.'],
+  [{ pressure: 1 }, { curResearch: 'pressure', researchComplete: true }, 'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.'],
 
-  [{efficiency: 2}, { curResearch: 'efficiency', researchComplete: true }, 'With some decorations around our outer anchors, the circle will be more efficient.'],
+  [{ efficiency: 2 }, { curResearch: 'efficiency', researchComplete: true }, 'With some decorations around our outer anchors, the circle will be more efficient.'],
 
-  [{pressure: 2}, { curResearch: 'pressure', researchComplete: true }, 'With stabilizing lines in our inner circle, the circle will press harder against the void.'],
+  [{ pressure: 2 }, { curResearch: 'pressure', researchComplete: true }, 'With stabilizing lines in our inner circle, the circle will press harder against the void.'],
 
-  [{efficiency: 3}, { curResearch: 'efficiency', researchComplete: true }, 'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
+  [{ efficiency: 3 }, { curResearch: 'efficiency', researchComplete: true }, 'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
     'love efficiency.'],
 
-  [{pressure: 3}, { curResearch: 'pressure', researchComplete: true }, , 'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
+  [{ pressure: 3 }, { curResearch: 'pressure', researchComplete: true }, , 'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
     'possible. Let\'s fill the world!'],
 
-  [{dest: 3}, { curResearch: 'dest', researchComplete: true },  'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
+  [{ dest: 3 }, { curResearch: 'dest', researchComplete: true }, 'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
     'creation.'],
 
-  [{dest: 4}, { curResearch: 'dest', researchComplete: true }, 'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
+  [{ dest: 4 }, { curResearch: 'dest', researchComplete: true }, 'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
     'world with earth, water, plants, animals, and dogs, we\'ll have a real Doggy Dog World.'],
 
-    // Make this a dialog box or thing
-  [{}, {gameDone: true}, 'What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!']
+  // Make this a dialog box or thing
+  [{}, { gameDone: true }, 'What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!']
 
 ]
 
@@ -436,7 +438,7 @@ class App extends React.Component {
     }
     state.drawnDestTotals[destName]++
     state.drawnTotal++
-    state['made' + dest] = true
+    state[`made${circle.dest}`] = true
     state.completedCircles.push(circle);
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
@@ -522,11 +524,34 @@ class App extends React.Component {
   render() {
     let s = this.state;
 
+    if (document.getElementById('progress') !== null) {
+      document.getElementById("progress").children[1].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
+      document.getElementById("progress").children[2].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
+      let visibility = 'visible'
+      if (s.res.ideas.amount < s.res.ideas.cap) {
+        visibility = 'hidden';
+      }
+
+      document.getElementById("layer3").children[5].style.visibility = visibility
+      document.getElementById("layer3").children[6].style.visibility = visibility
+
+    }
+    if (document.getElementById('dogCaret') !== null) {
+      let lily = document.getElementById('lily').getBBox();
+      document.getElementById('dogCaret').style.marginTop = lily.y + lily.height * 16.5 / 32 + 'px';
+    }
     return (
       <div id="verticalFlex">
         <div id="flex">
-          <div className="panel leftPanel">
-            <Lily style={{ width: '80px', height: 'auto', marginLeft: '-5px' }} />
+          <div className="panel leftPanel" id="resourcePanel">
+            <div id="dogBox">
+              <div id="lilyBox">
+                <Lily id="lily" style={{ width: '80px', height: 'auto', marginLeft: '-5px' }} />
+              </div>
+              <div id="dogCaret" style={{}}></div>
+              <div id="dogSays"><span id="dogWords">{story[1][2]}</span></div>
+            </div>
+
             <div style={{ display: "flex" }}>
               <div style={{ flexGrow: 1 }}>
                 {s.gameDone && <span>You win!</span>}
@@ -554,8 +579,6 @@ class App extends React.Component {
                     this.completeCircle(s, s.tmCircle);
                     this.drawCanvas(this.canvas, s.tmCircle, this.transform, true)
                   }}>Cheat Circle</button>}
-                <button>Pause</button>
-                <button onClick={this.reset}>Reset</button>
               </div>
             </div>
             <table>
@@ -579,6 +602,15 @@ class App extends React.Component {
                 })}
               </tbody>
             </table>
+            <div id="controls">
+              <span style={{ 'cursor': 'pointer', fontSize: '1em' }}
+                onClick={() => { this.setState({ paused: !s.paused }) }}>
+                {s.paused ? '⏵︎' : <Pause></Pause>}</span>
+              <span style={{ 'cursor': 'pointer', fontSize: '1.5em' }}
+                onClick={() => { this.setState({ paused: !s.paused }) }}>
+                ⚙</span>
+              <button onClick={this.reset}>Reset</button>
+            </div>
           </div>
           <div className="panel leftPanel narrow">
             <div className="big"><span style={s.showSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>
@@ -673,18 +705,18 @@ class App extends React.Component {
                 {s.completedCircles.length >= maxCircles && <span>Maximum circle count reached. Select circles to delete to draw more.</span>}
                 <div style={{ display: 'flex' }}>
                   <div style={{ 'textAlign': 'left', 'flexGrow': 1 }}>
-                    <button onClick={this.cancelDraw}>Cancel Drawing</button>
+                    <button disabled={s.tmCircle === null} onClick={this.cancelDraw}>Cancel Drawing</button>
                   </div>
                   {debug && <div style={{ 'textAlign': 'right' }}>
                     <button
                       onClick={() => { this.startDraw(false) }}
-                      disabled={s.completedCircles.length >= maxCircles || (s.tmCircle != null && !s.tmCircle.done)}
+                      disabled={s.completedCircles.length >= maxCircles || (s.tmCircle !== null && !s.tmCircle.done)}
                     >Cheat Draw</button>
                   </div>}
                   <div style={{ 'textAlign': 'right' }}>
                     <button
                       onClick={() => { this.startDraw(true) }}
-                      disabled={!this.haveCost() || s.completedCircles.length >= maxCircles || (s.tmCircle != null && !s.tmCircle.done)}
+                      disabled={!this.haveCost() || s.completedCircles.length >= maxCircles || (s.tmCircle !== null && !s.tmCircle.done)}
                     >Let's Draw It</button>
                   </div>
                 </div>
@@ -1248,15 +1280,7 @@ class App extends React.Component {
     this.setState(state => {
       let s = state;
       this.updateResources(s);
-      document.getElementById("progress").children[1].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
-      document.getElementById("progress").children[2].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
-      let visibility = 'visible'
-      if (s.res.ideas.amount < s.res.ideas.cap) {
-        visibility = 'hidden';
-      }
 
-      document.getElementById("layer3").children[5].style.visibility = visibility
-      document.getElementById("layer3").children[6].style.visibility = visibility
       this.checkProg(s);
       let allDone = true;
       let drewSegment = false;
@@ -1304,6 +1328,8 @@ class App extends React.Component {
                 let prevArcEnd = (prevNormEnd - seg.start) / diff;
                 let [start, end] = normAndOrder(circle, Math.min(prevArcStart, curArcStart),
                   Math.max(prevArcEnd, curArcEnd));
+                  console.log('both', start, end, Math.round(prevArcStart,3), Math.round(prevArcEnd,3), Math.round(curArcStart,3), Math.round(curArcEnd,3),
+                  prevRelX, prevRelY, relX, relY);
 
                 if (end > .75 && start < .25) {
                   addArc(progs, [0, start]);
@@ -1316,7 +1342,7 @@ class App extends React.Component {
                   newSegs.push([start, end])
                 }
               } else {
-
+                console.log('onepoint')
                 if (curArcEnd > .75 && curArcStart < .25) {
                   addArc(progs, [0, curArcStart]);
                   addArc(progs, [curArcEnd, 1]);
@@ -1379,6 +1405,8 @@ class App extends React.Component {
         s.tmCircle.done = true
         this.completeCircle(s, s.tmCircle)
       }
+      this.prevX = this.mouseX;
+      this.prevY = this.mouseY;
       return { tmCircle: s.tmCircle };
 
     }, callback);
@@ -1475,8 +1503,7 @@ class App extends React.Component {
     if ((e.buttons & 1) === 1 || true) {
       var rect = this.canvas.current.getBoundingClientRect();
       //if (this.mouseClicked) {
-      this.prevX = this.mouseX;
-      this.prevY = this.mouseY;
+
       //}
       let point = this.inverseTransform.transformPoint(new DOMPoint(e.clientX - rect.left, e.clientY - rect.top));
       this.mouseX = point.x;
@@ -1503,16 +1530,12 @@ class App extends React.Component {
     if (e.touches.length > 0) {
       var rect = this.canvas.current.getBoundingClientRect();
       if (this.mouseClicked) {
-        this.prevX = this.mouseX;
-        this.prevY = this.mouseY;
       }
       let point = new DOMPoint(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
       point = this.inverseTransform.transformPoint(point);
       this.mouseX = point.x;
       this.mouseY = point.y;
       if (!this.mouseClicked) {
-        this.prevX = this.mouseX;
-        this.prevY = this.mouseY;
       }
       this.mouseClicked = true;
     } else {

@@ -4,18 +4,16 @@
 * Why does having more circles make existing circles brighter?
 * Animate circle creation
 * Animate and fix builder button
-* Delete circles
-* Mouseover circle info (which resources increased/decreased)
 * Dog gives hints and says useless things (haha)
 * better glyphs at max pressure/efficiency
 * drawing harder for higher pressure/efficiency (glyphs more precise??)
     * shift lines to be on outside and inside instead of through and inside?
 * flash to indicate unlocks
-* remove cost for things already built
 * test colorblind (names on costs?)
 * confirm reset
+* make play button, gear button
+* confirm cancel drawing
 ### Mobile
-* Ability to view info about circles
 * View info about circles for mobile
 * Drawing less finicky. Have bigger slop range for segments already drawing?
 * The whole dang layout
