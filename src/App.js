@@ -2,7 +2,8 @@ import './App.css';
 import React from "react";
 import { ReactComponent as Lily } from './lily_crop.svg';
 import { ReactComponent as Pause } from './pause.svg';
-import { toHaveAccessibleDescription } from '@testing-library/jest-dom/dist/matchers';
+import { ReactComponent as Play } from './play.svg';
+import { ReactComponent as Gear } from './gear.svg';
 
 
 const debug = true;
@@ -759,10 +760,10 @@ class App extends React.Component {
             <div id="controls">
               <span style={{ 'cursor': 'pointer', fontSize: '1em' }}
                 onClick={() => { this.setState({ paused: !s.paused }) }}>
-                {s.paused ? '⏵︎' : <Pause></Pause>}</span>
+                {s.paused ? <Play></Play> : <Pause></Pause>}</span>
               <span style={{ 'cursor': 'pointer', fontSize: '1.5em' }}
                 onClick={() => { this.setState({ paused: !s.paused }) }}>
-                ⚙</span>
+                <Gear></Gear></span>
               <button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button>
             </div>
           </div>
