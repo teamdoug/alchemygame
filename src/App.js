@@ -2,6 +2,7 @@ import './App.css';
 import React from "react";
 import { ReactComponent as Lily } from './lily_crop.svg';
 import { ReactComponent as Pause } from './pause.svg';
+import { toHaveAccessibleDescription } from '@testing-library/jest-dom/dist/matchers';
 
 
 const debug = true;
@@ -63,97 +64,154 @@ const resMap = {
   1: ['ideas', 'heaven', 'light', 'air', 'clouds', 'stars'],
 }
 
+const initStory = 'Woof! In the beginning God created the heavens and the earth. ' +
+  '6 days later, Dog was playing with a frisbee while God rested when she realized it ' +
+  'wasn\'t actually a frisbee. It was a transmutation circle God had used ' +
+  'to create the world. Dog thought she could make a better world, so she decided ' +
+  'to take some of the earth God had created to build her own transmutation circles. ' +
+  'She was going to make her own Doggy Dog World, but everything will go a little better with Dog\'s best friend, Human.';
+
 const story = [
-  [{ dest: 0 }, {}, 'Woof! In the beginning God created the heavens and the earth. ' +
-    '6 days later, Dog was playing with a frisbee while God rested when she realized it ' +
-    'wasn\'t actually a frisbee. It was a transmutation circle God had used ' +
-    'to create the world. Dog thought she could make a better world, so she decided ' +
-    'to take some of the earth God had created to build her own transmutation circles. ' +
-    'She was going to make her own Doggy Dog World, but everything will go a little better with Dog\'s best friend, Human.'],
-
   [{ dest: 0 }, {}, 'With some of this earth, we can build a template for a circle. Once we draw ' +
-    'the circle, it will give me some inspiration for some new patterns.'],
+    'the circle, it will give me inspiration for new patterns.', { confirm: 'Let\'s do this' }],
 
-  [{ dest: 0 }, { startedDrawing: true }, 'I\'ll start drawing the circle. It\'ll be finished in no time.'],
+  [{ dest: 0 }, { startedDrawing: true }, 'I\'ll start drawing the circle. It\'ll be finished in no time.',
+  { confirm: 'I believe in you', delay: (debug ? 0 : 5) }],
 
-  // Something to trigger this a little later and not require confirmation?
   [{ dest: 0 }, { startedDrawing: true }, 'Turns out drawing with my paws is really slow. I\'ll get better ' +
-    'with practice, but do you think you can help me a little, Human?'],
+    'with practice, but do you think you can help me a little, Human?',
+  { state: { canDraw: true }, confirm: 'I love drawing' }],
+
+  [{ dest: 0 }, { canDraw: true }, 'Thanks! I bet you\'ll be great at drawing.', { noConfirm: true }],
 
   [{ dest: 0 }, { drawnTotal: 1 }, 'That\'s a nice circle. It\'s starting to give me some inspiration already. ' +
-    'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.'],
+    'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.', { confirm: 'I can\'t wait!', state: { unlockedSelector: true } }],
 
-  [{ dest: 0 }, { researchComplete: true }, 'Ok, what if we take this earth, and use it to make...'],
+  [{}, { unlockedSelector: true }, 'If you ever decide you don\'t like a circle, you can delete it with the Selector',
+  { confirm: 'Yikes, I\'ll keep that in mind' }],
 
-  [{ dest: 0 }, { researchComplete: true }, 'MORE EARTH'],
+  [{}, { drawnTotal: 12, unlockSelector: true }, 'By the way, we can\'t have more than 12 circles without destabilizing ' +
+    'the world. You can use the selector to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
+
+  [{ dest: 0 }, { researchConfirmed: true }, 'Ok, what if we take this earth, and use it to make...', { confirm: 'Make what?' }],
+
+  [{ dest: 0 }, { researchConfirmed: true }, 'MORE EARTH!', { confirm: 'NO  WAY!' }],
 
   // Complete research after this?
-  [{ dest: 0 }, { researchComplete: true }, 'I amaze myself sometimes. You can use the builder to change what the circle will ' +
+  [{ dest: 0 }, { researchConfirmed: true }, 'I amaze myself sometimes. You can use the builder to change what the circle will ' +
     'create now. We could make more earth, or we can make some more inspiration. ' +
-    'I think I\'ll need a lot more inspiration for my next idea. Thinking about it, more earth was kind of ' +
-    'obvious, really.'],
+    'I think I\'ll need a lot more inspiration for my next idea, though.', { noConfirm: true, completeResearch: true }],
 
-  [{ dest: 1 }, { researchComplete: true }, 'I\'ve been thinking hard, and what if we made something new? What if we took ' +
-    'this earth and transformed it into water? Pretty neat, right?'],
+  [{ dest: 1 }, { researchConfirmed: true }, 'I\'ve been thinking hard, and what if we made something new? What if we took ' +
+    'this earth and transformed it into water? Pretty neat, right?', { confirm: 'Pretty neat' }],
 
-  [{ dest: 1 }, { researchComplete: true }, 'Also, I\'ve noticed that we\'ve been hard at work making earth and more earth, but we\'re not filling the world with as much earth ' +
+  [{ dest: 1 }, { researchConfirmed: true }, 'Also, I\'ve noticed that we\'ve been hard at work making earth and more earth, but we\'re not filling the world with as much earth ' +
     'as I was expecting. It seems the void is pushing back on the transmutation when there\'s ' +
-    'too much. This seems like a future problem for now, but I\'ll start thinking about ways to push harder.'],
+    'too much earth. This seems like a future problem for now, but I\'ll start thinking about ways to push harder.',
+  { confirm: 'Push it' }],
 
   // Complete research
-  [{ dest: 1 }, { researchComplete: true }, 'In the meantime, we\'re going to need some water before I can come up with my next idea.'],
+  [{ dest: 1 }, { researchConfirmed: true }, 'In the meantime, we\'re going to need some water before I can come up with my next idea.',
+  { completeResearch: true, confirm: 'Let\'s make some water' }],
 
   [{}, { madewater: true }, 'This water is great for swimming in! Less good for bathing in. We can use this water to make ' +
-    'more inspiration, more earth, or even more water. I\'ll let you decide which.'],
+    'more inspiration, more earth, or even more water. I\'ll let you decide which.', { confirm: 'So many options!' }],
 
   // Present research decision
   [{}, { madewater: true }, 'There are two things I\'m thinking of right now. One will give us a new resource, and ' +
-    'one will help us make things faster. Which do you think I should work on?'],
+    'one will help us make things faster. Which do you think I should work on?', { noConfirm: true }],
 
-  [{}, { curResearch: 'efficiency', researchComplete: true }, 'If we change our outer circle some, I think we can make our transmutations more ' +
-    'efficient. The circles will cost more, but they\'ll generate more for the same input.'],
+  [{ dest: 2 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true }],
 
-  [{ efficiency: 1, dest: 1 }, {}, 'Only one thing left to think about! I\'ll figure out what resource to make next.'],
+  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { noConfirm: true }],
 
-  [{ dest: 1 }, { curResearch: 'dest', researchComplete: true }, 'Oh boy! We can make plants now! Grass is my favorite plant! It\'s great for eating ' +
-    'and for pooping in. Maybe not at the same time...'],
+  [{}, { curResearch: 'efficiency', researchConfirmed: true },
+  'If we change our outer circle some, I think we can make our transmutations more ' +
+  'efficient. The circles will cost more, but they\'ll generate more for the same input.', { completeResearch: true, confirm: 'Hm, tradeoffs' }],
+
+  [{ efficiency: 1, dest: 2 }, {}, 'Only one thing left to think about! I\'ll figure out what resource to make next.', { noConfirm: true }],
+
+  [{ dest: 2 }, { curResearch: 'dest', researchConfirmed: true },
+  'Oh boy! We can make plants now! Grass is my favorite plant! It\'s great for eating ' +
+  'and for pooping in. Maybe not at the same time...', { confirm: 'Please not at the same time' }],
+
+  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest', researchConfirmed: true }, 'Time to research some efficiency, but we should also make some ' +
+    'plants while we\'re at it.', { confirm: 'Let\'s do it', completeResearch: true }],
+
+  [{ dest: 2, efficiency: 1 }, { curResearch: 'dest', researchConfirmed: true }, 'Once we\'ve made some grass, I\'ll start thinking of ' +
+    'more things to improve.', { confirm: 'Let\'s do it', completeResearch: true, state: { warnedGrass: true } }],
+
+  [{ dest: 3, efficiency: 1 }, { madeplants: false, warnedGrass: false }, 'Once we\'ve made some grass, I\'ll start thinking of ' +
+    'more things to improve.', { noConfirm: true }],
 
   // Complete research + Present research decision
-  [{ dest: 1 }, { curResearch: 'dest', researchComplete: true }, 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
+  [{ dest: 3 }, { madeplants: true }, 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
     'our transmutation circles push harder against the void. Doggy Dog World is going to be a ' +
-    'world full of things, so we\'ll need to figure that out eventually.'],
+    'world full of things, so we\'ll need to figure that out eventually.', { noConfirm: true }],
 
-  [{ efficiency: 2 }, {}, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+  [{ efficiency: 1 }, { curResearch: 'efficiency', researchConfirmed: true },
+    'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.',
+  { confirm: 'More work to draw', completeResearch: true }],
 
-  // Make this one repeatable? Or done specially in general??
-  [{ dest: 2 }, {}, 'What should I ponder next?']
+  [{ pressure: 0 }, { curResearch: 'pressure', researchConfirmed: true },
+  'By changing our inner circle, the circle will push harder against the void, helping ' +
+  'us fill the world better.', { confirm: 'Fill it up!', completeResearch: true }],
 
-  [{ pressure: 0 }, { curResearch: 'pressure', researchComplete: true }, 'By changing our inner circle, the circle will push harder against the void, helping ' +
-  'us fill the world better.'],
+  [{ pressure: 1 }, { curResearch: 'pressure', researchConfirmed: true },
+    'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.',
+  { confirm: 'Fill it up!', completeResearch: true }],
 
-  [{ efficiency: 1 }, { curResearch: 'efficiency', researchComplete: true }, 'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.'],
+  [{ efficiency: 2 }, { curResearch: 'efficiency', researchConfirmed: true },
+    'With some decorations around our outer anchors, the circle will be more efficient.',
+  { confirm: 'More decorations!', completeResearch: true }],
 
-  [{ pressure: 1 }, { curResearch: 'pressure', researchComplete: true }, 'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.'],
+  [{ pressure: 2 }, { curResearch: 'pressure', researchConfirmed: true },
+    'With stabilizing lines in our inner circle, the circle will press harder against the void.',
+  { confirm: 'Fill it up!', completeResearch: true }],
 
-  [{ efficiency: 2 }, { curResearch: 'efficiency', researchComplete: true }, 'With some decorations around our outer anchors, the circle will be more efficient.'],
+  [{ efficiency: 3 }, { curResearch: 'efficiency', researchConfirmed: true },
+  'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
+  'love efficiency.',
+  { confirm: 'Wait, really?' }],
 
-  [{ pressure: 2 }, { curResearch: 'pressure', researchComplete: true }, 'With stabilizing lines in our inner circle, the circle will press harder against the void.'],
+  [{ efficiency: 3 }, { curResearch: 'efficiency', researchConfirmed: true },
+    'Well, this dog loves efficiency.',
+  { confirm: 'Me too', completeResearch: true }],
 
-  [{ efficiency: 3 }, { curResearch: 'efficiency', researchComplete: true }, 'With glyphs in our outer anchors, our circles will be as efficient as possible. Dogs ' +
-    'love efficiency.'],
+  [{ pressure: 3 }, { curResearch: 'pressure', researchConfirmed: true },
+  'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
+  'possible. Let\'s fill the world!',
+  { confirm: 'Fill the world!', completeResearch: true }],
 
-  [{ pressure: 3 }, { curResearch: 'pressure', researchComplete: true }, , 'With glyphs in our inner anchors, our circles will press as hard against the void as ' +
-    'possible. Let\'s fill the world!'],
+  [{ efficiency: 2, dest: 3, pressure: 1 }, {}, 'Only one thing left to think about! I\'ll figure out what resource to make next.', { noConfirm: true }],
 
-  [{ dest: 3 }, { curResearch: 'dest', researchComplete: true }, 'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
-    'creation.'],
+  [{ dest: 4 }, { madeanimals: true }, 'With all these animals to chase and bark at, I\'m getting a lot of inspiration!', { confirm: "Bark! Bark!" }],
 
-  [{ dest: 4 }, { curResearch: 'dest', researchComplete: true }, 'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
-    'world with earth, water, plants, animals, and dogs, we\'ll have a real Doggy Dog World.'],
+  [{ efficiency: 2, dest: 4, pressure: 1 }, { madeanimals: false }, 'We\'re going to need some animals to chase for inspiration.', { noConfirm: true }],
 
-  // Make this a dialog box or thing
-  [{}, { gameDone: true }, 'What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!']
+  [{ efficiency: 3, dest: 4, pressure: 2 }, { madeanimals: true }, 'Only one thing left to think about! The ultimate creation!', { noConfirm: true }],
 
+  [{ dest: 3 }, { curResearch: 'dest', researchConfirmed: true },
+  'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
+  'creation.',
+  { confirm: 'Don\'t get too distracted', completeResearch: true }],
+
+  [{ dest: 4 }, { curResearch: 'dest', researchConfirmed: true },
+  'More dogs! That\'s what the world really needs! But the world needs everything else too so the dogs can have fun. If we can fill the ' +
+  'world with earth, water, plants, animals, and dogs, we\'ll have a real Doggy Dog World.',
+  { confirm: 'You\'re still my favorite dog', completeResearch: true }],
+
+  [{ efficiency: 3, dest: 5, pressure: 2 }, { madedogs: false }, 'If I\'m going to get any more inspiration, I\'m going to need some dogs to play with!',
+  { noConfirm: true }],
+
+  [{ dest: 5 }, { madedogs: true }, 'Soon there will be dogs everywhere! I\'m so excited!', { confirm: "Woof!" }],
+
+  [{ efficiency: 4, dest: 5, pressure: 3 }, {}, 'Only one thing left to think about! Time to get maximum pressure!', { noConfirm: true }],
+
+  [{ efficiency: 3, dest: 5, pressure: 4 }, {}, 'Only one thing left to think about! Time to get maximum efficiency!', { noConfirm: true }],
+
+  [{ efficiency: 4, dest: 5, pressure: 4 }, {}, 'I don\'t think there\'s any more inspiration to be had. If we can just fill the world with everything, ' +
+    'it will be a Doggy Dog World!', { noConfirm: true, state: { researchAllDone: true } }],
 ]
 
 const sayings = [
@@ -184,13 +242,16 @@ const PROG = {
     ideaCost: .5,
     triggerResource: 'ideas',
     unlockSlider: ['dest', 1],
+    confirm: 'So what\'s your great idea?',
   }, {
     ideaCost: 1.5,
     unlockSlider: ['dest', 2],
+    confirm: 'What\'s next?',
   }, {
     ideaCost: 2,
     triggerResource: 'water',
     unlockSlider: ['dest', 3],
+    name: 'New things!',
   }, {
     ideaCost: 4,
     triggerResource: 'plants',
@@ -220,6 +281,7 @@ const PROG = {
   'efficiency': [{
     ideaCost: 4,
     triggerResource: 'water',
+    name: 'Faster!',
     unlockSlider: ['efficiency', 1],
   }, {
     ideaCost: 6,
@@ -323,6 +385,17 @@ class App extends React.Component {
     const storedState = localStorage.getItem("heartosisIGJ5Save");
     if (storedState && !forceReset) {
       this.state = JSON.parse(storedState);
+      if (this.state.storyDelay !== null && this.state.storyConfirm === null) {
+        setTimeout(() => {
+          this.state.doneStories[this.state.activeStory] = true;
+          let sto = story[this.state.activeStory];
+          if (sto[3].state) {
+            Object.assign(this.state, sto[3].state)
+          }
+          this.state.activeStory = null;
+          this.state.storyDelay = null;
+        }, this.state.storyDelay * 1000)
+      }
     } else {
       this.state = this.getInitState();
     }
@@ -366,6 +439,9 @@ class App extends React.Component {
       researchComplete: false,
       researchOpts: {},
       gameDone: false,
+      doneNotified: false,
+      doneConfirmed: false,
+      modalConfirm: null,
       prog: {
         'dest': 0,
         'source': 0,
@@ -404,6 +480,22 @@ class App extends React.Component {
       madeplants: false,
       madeanimals: false,
       madedogs: false,
+      modal: true,
+      paused: true,
+      modalMessage: initStory,
+      confirmCancelDraw: false,
+      confirmReset: false,
+      activeStory: null,
+      activeMessage: null,
+      storyConfirm: null,
+      doneStories: {},
+      noStoryConfirm: false,
+      storyDelay: null,
+      canDraw: false,
+      researchConfirmed: false,
+      unlockedSelector: false,
+      warnedGrass: false,
+      researchAllDone: false,
       selectedCirclesDelete: [],
     }
     state.res.earth.visible = true
@@ -438,10 +530,11 @@ class App extends React.Component {
     }
     state.drawnDestTotals[destName]++
     state.drawnTotal++
-    state[`made${circle.dest}`] = true
+    state[`made${destName}`] = true
     state.completedCircles.push(circle);
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
+    state.tmCircle = null;
 
     return state;
   }
@@ -450,7 +543,6 @@ class App extends React.Component {
 
 
   reset = () => {
-    this.confirmingReset = false;
     this.resetLocalVars();
     let state = this.getInitState();
     this.setState(state, this.resizeCanvas());
@@ -525,8 +617,8 @@ class App extends React.Component {
     let s = this.state;
 
     if (document.getElementById('progress') !== null) {
-      document.getElementById("progress").children[1].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
-      document.getElementById("progress").children[2].offset.baseVal = (s.res.ideas.cap - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
+      document.getElementById("progress").children[1].offset.baseVal = (s.res.ideas.cap * 1.03 - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
+      document.getElementById("progress").children[2].offset.baseVal = (s.res.ideas.cap * 1.03 - s.res.ideas.amount) / (s.res.ideas.cap * 1.03)
       let visibility = 'visible'
       if (s.res.ideas.amount < s.res.ideas.cap) {
         visibility = 'hidden';
@@ -541,39 +633,101 @@ class App extends React.Component {
       document.getElementById('dogCaret').style.marginTop = lily.y + lily.height * 16.5 / 32 + 'px';
     }
     return (
+
       <div id="verticalFlex">
         <div id="flex">
+          {(s.modal || s.confirmCancelDraw || s.confirmReset) && <div id="modal-bg">
+            <div id="modal">
+              {s.confirmReset && <p>Completely reset the game and start over?</p>}
+                {s.confirmCancelDraw && <p>Abort your current circle to make a different circle?</p>}
+                {s.gameDone && !s.doneConfirmed && <div>
+                  <p>What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!</p>
+                  <p>Game made for <a style={{color: '#87bbe6'}} href="https://itch.io/jam/summer-incremental-game-jam-2022">Summer Incremental Game Jam 2022</a> by heartosis</p>
+                  <p>Dog Art by Greg</p>
+                  <p>Special Thanks to Wife</p>
+                  <p>Thank you for playing!</p>
+                </div>}
+                {s.modal && <p>{s.modalMessage}</p>}
+              {s.confirmReset &&
+                <button onClick={() => { this.reset() }}>Confirm Reset</button>}
+              {s.confirmCancelDraw &&
+                <button onClick={() => { this.cancelDraw(); this.setState({ confirmCancelDraw: false }) }}>Abort Drawing</button>}
+              {(s.confirmReset || s.confirmCancelDraw) &&
+                <button onClick={() => this.setState({ confirmReset: false, confirmCancelDraw: false })}>Cancel</button>}
+              {s.modal && <button onClick={() => { this.setState({ doneConfirmed: s.gameDone, modal: false, paused: false, modalMessage: null }) }}>{s.modalConfirm || 'OK'}</button>}
+            </div>
+          </div>}
           <div className="panel leftPanel" id="resourcePanel">
             <div id="dogBox">
               <div id="lilyBox">
                 <Lily id="lily" style={{ width: '80px', height: 'auto', marginLeft: '-5px' }} />
               </div>
-              <div id="dogCaret" style={{}}></div>
-              <div id="dogSays"><span id="dogWords">{story[1][2]}</span></div>
+              {s.activeMessage !== null && <>
+                <div id="dogCaret" style={{}}></div>
+                <div id="dogSays"><span id="dogWords">{s.activeMessage}</span></div>
+              </>}
+              {s.activeMessage === null && Object.keys(s.researchOpts).length > 0 && <>
+                <div id="dogCaret" style={{}}></div>
+                <div id="dogSays"><span id="dogWords">What should I ponder next?</span></div>
+              </>}
             </div>
 
             <div style={{ display: "flex" }}>
               <div style={{ flexGrow: 1 }}>
-                {s.gameDone && <span>You win!</span>}
+                {s.gameDone && <span>You won!</span>}
                 <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
-                {s.researchComplete &&
+                {s.researchComplete && !s.researchConfirmed &&
                   <button onClick={() => {
-                    this.setState((s) => { this.completeResearch(s) });
-                  }}>Complete Research</button>}
-                {'source' in s.researchOpts && <button onClick={() => {
-                  this.setState((s) => { this.startResearch(s, 'source') })
-                }}>Source</button>}
-                {'dest' in s.researchOpts && <button onClick={() => {
-                  this.setState((s) => { this.startResearch(s, 'dest') })
-                }}>Dest</button>}
-                {'efficiency' in s.researchOpts && <button onClick={() => {
-                  this.setState((s) => { this.startResearch(s, 'efficiency') })
-                }}>Efficiency</button>}
-                {'pressure' in s.researchOpts && <button onClick={() => {
-                  this.setState((s) => { this.startResearch(s, 'pressure') })
-                }}>Pressure</button>}
+                    this.setState((s) => { return { researchConfirmed: true } });
+                  }}>{s.curResearch.confirm ? s.curResearch.confirm : 'Tell me your new idea!'}</button>}
+                {s.storyConfirm === null && <>
+                  {'source' in s.researchOpts && <button onClick={() => {
+                    this.setState((s) => { this.startResearch(s, 'source') })
+                  }}>Source</button>}
+                  {'dest' in s.researchOpts && <button onClick={() => {
+                    this.setState((s) => { this.startResearch(s, 'dest') })
+                  }}>{PROG.dest[s.prog.dest].name ? PROG.dest[s.prog.dest].name : 'New resource!'}</button>}
+                  {'efficiency' in s.researchOpts && <button onClick={() => {
+                    this.setState((s) => { this.startResearch(s, 'efficiency') })
+                  }}>{PROG.efficiency[s.prog.efficiency].name ? PROG.efficiency[s.prog.efficiency].name : 'Efficiency!'}</button>}
+                  {'pressure' in s.researchOpts && <button onClick={() => {
+                    this.setState((s) => { this.startResearch(s, 'pressure') })
+                  }}>{PROG.pressure[s.prog.pressure].name ? PROG.pressure[s.prog.pressure].name : 'Pressure!'}</button>}
+                </>}
               </div>
               <div style={{ textAlign: 'right' }}>
+                {s.storyConfirm !== null &&
+                  <button onClick={() => {
+                    s.activeMessage = null;
+                    s.storyConfirm = null;
+                    if (s.storyDelay !== null) {
+                      setTimeout(() => {
+                        this.setState((s) => {
+                          if (s.activeStory === null) {
+                            return
+                          }
+                          s.doneStories[s.activeStory] = true;
+                          let sto = story[s.activeStory];
+                          console.log('activesto', s.activeStory)
+                          console.log('sto', sto)
+                          if (sto[3].state) {
+                            Object.assign(s, sto[3].state)
+                          }
+                          s.activeStory = null;
+                          s.storyDelay = null;
+
+                        })
+                      }, s.storyDelay * 1000)
+                    } else {
+                      s.doneStories[s.activeStory] = true;
+                      let sto = story[this.state.activeStory];
+                      if (sto[3].state) {
+                        Object.assign(s, sto[3].state)
+                      }
+                      s.activeStory = null;
+                    }
+                  }}>{s.storyConfirm}</button>
+                }
                 {debug &&
                   <button disabled={s.tmCircle === null} onClick={() => {
                     this.completeCircle(s, s.tmCircle);
@@ -595,7 +749,7 @@ class App extends React.Component {
                     <td><ResourceDiff
                       gainFrac={gl.gainFrac}
                       lossFrac={gl.lossFrac}></ResourceDiff></td>
-                    <td><button onClick={() => s.res[name].amount += .1}>+.1</button>
+                    <td><button onClick={() => s.res[name].amount += (name === 'ideas' ? 1 : .1)}>+.1</button>
                       <button onClick={() => s.res[name].amount -= .1}>-.1</button></td>
                     <td>+{(gl.gain > -1 ? gl.gain : s.res[name].gain).toFixed(6)} -{(gl.loss > -1 ? gl.loss : s.res[name].loss).toFixed(6)}</td>
                   </tr>)
@@ -609,11 +763,11 @@ class App extends React.Component {
               <span style={{ 'cursor': 'pointer', fontSize: '1.5em' }}
                 onClick={() => { this.setState({ paused: !s.paused }) }}>
                 ⚙</span>
-              <button onClick={this.reset}>Reset</button>
+              <button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button>
             </div>
           </div>
           <div className="panel leftPanel narrow">
-            <div className="big"><span style={s.showSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>
+            <div className="big"><span style={s.showSelector || !s.unlockedSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>
               {!s.showBuilder && <span style={{ marginLeft: '8px' }} onClick={() => this.setState({ showBuilder: true, showSelector: false }, () => { this.resizePreview(); this.createPreview() })}>Builder&nbsp;&gt;</span>}</div>
             <div id="#selector">
               <div>
@@ -705,7 +859,7 @@ class App extends React.Component {
                 {s.completedCircles.length >= maxCircles && <span>Maximum circle count reached. Select circles to delete to draw more.</span>}
                 <div style={{ display: 'flex' }}>
                   <div style={{ 'textAlign': 'left', 'flexGrow': 1 }}>
-                    <button disabled={s.tmCircle === null} onClick={this.cancelDraw}>Cancel Drawing</button>
+                    <button disabled={s.tmCircle === null} onClick={() => this.setState({ confirmCancelDraw: true })}>Abort Drawing</button>
                   </div>
                   {debug && <div style={{ 'textAlign': 'right' }}>
                     <button
@@ -1215,6 +1369,7 @@ class App extends React.Component {
       }
     }
     s.researchOpts = {}
+
     for (const type of Object.keys(PROG)) {
       let sProg = s.prog[type]
       let next = PROG[type][sProg]
@@ -1222,7 +1377,6 @@ class App extends React.Component {
       if (s.res[next.triggerResource] && !s.res[next.triggerResource].visible) {
         continue
       }
-      //console.log('check', type, ideaCost, s.prog[type])
       if (!ideaCost) {
         this.completeResearch(s, type)
         continue
@@ -1232,7 +1386,10 @@ class App extends React.Component {
       }
     }
     if (Object.keys(s.researchOpts).length == 1) {
+      let research = Object.keys(s.researchOpts)[0]
+      if (research == 'dest') {
       this.startResearch(s, Object.keys(s.researchOpts)[0])
+      }
     }
   }
 
@@ -1243,7 +1400,7 @@ class App extends React.Component {
     let sProg = s.prog[type]
     let next = PROG[type][sProg]
     let ideaCost = next.ideaCost;
-    s.curResearch = { type, ideaCost }
+    s.curResearch = { type, ideaCost, confirm: next.confirm }
     s.res.ideas.cap = ideaCost;
     s.researchOpts = {}
   }
@@ -1268,8 +1425,71 @@ class App extends React.Component {
       s.curResearch = null;
       s.res.ideas.amount = 0;
       s.researchComplete = false
+      s.researchConfirmed = false
     }
     s.prog[type] += 1;
+  }
+
+  checkStory = (s) => {
+    if (s.activeStory !== null && !s.noStoryConfirm) {
+      return;
+    }
+    for (const [index, stuff] of story.entries()) {
+      let [progReq, stateReq, message, other] = stuff
+      if (other === undefined) {
+        other = {}
+      }
+      if (index in s.doneStories) {
+        continue;
+      }
+      let progMet = true;
+      for (const [key, val] of Object.entries(progReq)) {
+        if (s.prog[key] !== val) {
+          progMet = false
+          break
+        }
+      }
+      if (!progMet) {
+        continue
+      }
+      for (const [key, val] of Object.entries(stateReq)) {
+        if (key === 'curResearch') {
+          if (s.curResearch === null || s.curResearch.type != val) {
+            progMet = false
+            break
+          }
+        }
+        else if (s[key] !== val) {
+          progMet = false
+          break
+        }
+      }
+      if (!progMet) {
+        continue
+      }
+      s.activeStory = index;
+      s.activeMessage = message;
+      if (other.noConfirm) {
+        s.noStoryConfirm = true
+        s.activeStory = null
+        s.doneStories[index] = true;
+        if (other.state) {
+          Object.assign(s, other.state)
+        }
+      } else {
+        s.noStoryConfirm = false
+      }
+      if (other.delay) {
+        s.storyDelay = other.delay
+      }
+      if (other.confirm) {
+        s.storyConfirm = other.confirm
+      }
+      if (other.completeResearch) {
+        this.completeResearch(s)
+      }
+      break;
+    }
   }
 
   update = (delta, debugFrame) => {
@@ -1282,6 +1502,13 @@ class App extends React.Component {
       this.updateResources(s);
 
       this.checkProg(s);
+      this.checkStory(s);
+      // Make this a dialog box or thing
+      if (s.gameDone && !s.doneNotified) {
+        s.modal = true
+        s.doneNotified = true
+        s.modalConfirm = 'More drawing!'
+      }
       let allDone = true;
       let drewSegment = false;
       if (s.tmCircle === null) {
@@ -1294,6 +1521,9 @@ class App extends React.Component {
         allDone = false;
         let newSegs = [];
         let progs = seg.progress;
+        if (!s.canDraw) {
+          this.mouseClicked = false;
+        }
 
         if (seg.type === 'arc') {
           let relX = this.mouseX - seg.center[0];
@@ -1328,8 +1558,6 @@ class App extends React.Component {
                 let prevArcEnd = (prevNormEnd - seg.start) / diff;
                 let [start, end] = normAndOrder(circle, Math.min(prevArcStart, curArcStart),
                   Math.max(prevArcEnd, curArcEnd));
-                  console.log('both', start, end, Math.round(prevArcStart,3), Math.round(prevArcEnd,3), Math.round(curArcStart,3), Math.round(curArcEnd,3),
-                  prevRelX, prevRelY, relX, relY);
 
                 if (end > .75 && start < .25) {
                   addArc(progs, [0, start]);
@@ -1342,7 +1570,6 @@ class App extends React.Component {
                   newSegs.push([start, end])
                 }
               } else {
-                console.log('onepoint')
                 if (curArcEnd > .75 && curArcStart < .25) {
                   addArc(progs, [0, curArcStart]);
                   addArc(progs, [curArcEnd, 1]);
@@ -1439,6 +1666,12 @@ class App extends React.Component {
         s.res[dRes].visible = true
       }
       s.res[sRes].amount -= loss
+    }
+    if (!s.curResearch) {
+      s.res.ideas.amount = 0
+    }
+    if (s.researchAllDone) {
+      s.res.ideas.amount = s.res.ideas.cap
     }
   }
 

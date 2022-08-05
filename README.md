@@ -13,6 +13,8 @@
 * confirm reset
 * make play button, gear button
 * confirm cancel drawing
+* console save state functionality
+* Notify why circle can't be drawn
 ### Mobile
 * View info about circles for mobile
 * Drawing less finicky. Have bigger slop range for segments already drawing?
