@@ -10,7 +10,6 @@
 * flash to indicate unlocks
 * test colorblind (names on costs?)
 * make play button, gear button
-* console save state functionality
 * Notify why circle can't be drawn
 ### Mobile
 * View info about circles for mobile

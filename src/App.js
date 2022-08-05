@@ -1892,6 +1892,32 @@ class App extends React.Component {
     localStorage.setItem("heartosisIGJ5Save", JSON.stringify(this.state));
   };
 
+  saveState = (name) => {
+    localStorage.setItem(name, JSON.stringify(this.state));
+  }
+
+  loadState = (name) => {
+    const storedState = localStorage.getItem(name);
+    if (storedState) {
+      this.state = JSON.parse(storedState);
+      if (this.state.storyDelay !== null && this.state.storyConfirm === null) {
+        setTimeout(() => {
+          this.state.doneStories[this.state.activeStory] = true;
+          let sto = story[this.state.activeStory];
+          if (sto[3].state) {
+            Object.assign(this.state, sto[3].state)
+          }
+          this.state.activeStory = null;
+          this.state.storyDelay = null;
+        }, this.state.storyDelay * 1000)
+      }
+    } else {
+      this.state = this.getInitState();
+    }
+    this.setState(this.state)
+    setTimeout(this.initCompletedCanvases, 0);
+  }
+
 }
 
 function getRandomInt(max) {
