@@ -7,12 +7,9 @@
 * Dog gives hints and says useless things (haha)
 * better glyphs at max pressure/efficiency
 * drawing harder for higher pressure/efficiency (glyphs more precise??)
-    * shift lines to be on outside and inside instead of through and inside?
 * flash to indicate unlocks
 * test colorblind (names on costs?)
-* confirm reset
 * make play button, gear button
-* confirm cancel drawing
 * console save state functionality
 * Notify why circle can't be drawn
 ### Mobile

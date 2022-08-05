@@ -639,15 +639,15 @@ class App extends React.Component {
           {(s.modal || s.confirmCancelDraw || s.confirmReset) && <div id="modal-bg">
             <div id="modal">
               {s.confirmReset && <p>Completely reset the game and start over?</p>}
-                {s.confirmCancelDraw && <p>Abort your current circle to make a different circle?</p>}
-                {s.gameDone && !s.doneConfirmed && <div>
-                  <p>What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!</p>
-                  <p>Game made for <a style={{color: '#87bbe6'}} href="https://itch.io/jam/summer-incremental-game-jam-2022">Summer Incremental Game Jam 2022</a> by heartosis</p>
-                  <p>Dog Art by Greg</p>
-                  <p>Special Thanks to Wife</p>
-                  <p>Thank you for playing!</p>
-                </div>}
-                {s.modal && <p>{s.modalMessage}</p>}
+              {s.confirmCancelDraw && <p>Abort your current circle to make a different circle?</p>}
+              {s.gameDone && !s.doneConfirmed && <div>
+                <p>What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!</p>
+                <p>Game made for <a style={{ color: '#87bbe6' }} href="https://itch.io/jam/summer-incremental-game-jam-2022">Summer Incremental Game Jam 2022</a> by heartosis</p>
+                <p>Dog Art by Greg</p>
+                <p>Special Thanks to Wife</p>
+                <p>Thank you for playing!</p>
+              </div>}
+              {s.modal && <p>{s.modalMessage}</p>}
               {s.confirmReset &&
                 <button onClick={() => { this.reset() }}>Confirm Reset</button>}
               {s.confirmCancelDraw &&
@@ -981,24 +981,34 @@ class App extends React.Component {
       });
     }
     segments.push(...outerAnchors);
-    for (let i = 0; i < state.builder.source; i++) {
-      let curA = outerAnchors[i];
-      let nextA = outerAnchors[(i + 1) % state.builder.source];
-      let tempSeg = {
-        center: [0, 0],
-        radius: mainRadius,
-      }
-      let sect0 = intersectCircles(tempSeg, curA, 'cw');
-      let sect1 = intersectCircles(tempSeg, nextA, 'ccw');
-      let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
-      let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
+    if (state.builder.efficiency >= 1) {
       segments.push({
         type: 'arc',
         center: [0, 0],
-        radius: mainRadius,
-        start: norm0,
-        end: norm1,
-      })
+        radius: mainRadius + outerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+    } else {
+      for (let i = 0; i < state.builder.source; i++) {
+        let curA = outerAnchors[i];
+        let nextA = outerAnchors[(i + 1) % state.builder.source];
+        let tempSeg = {
+          center: [0, 0],
+          radius: mainRadius,
+        }
+        let sect0 = intersectCircles(tempSeg, curA, 'cw');
+        let sect1 = intersectCircles(tempSeg, nextA, 'ccw');
+        let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
+        let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
+        segments.push({
+          type: 'arc',
+          center: [0, 0],
+          radius: mainRadius,
+          start: norm0,
+          end: norm1,
+        })
+      }
     }
     if (state.builder.efficiency >= 2) {
       for (let i = 0; i < state.builder.source; i++) {
@@ -1006,7 +1016,7 @@ class App extends React.Component {
         let curA = enlargedOuterAnchors[i];
         let tempSeg = {
           center: [0, 0],
-          radius: mainRadius,
+          radius: mainRadius + outerAnchorRadius,
         }
         let sect0 = intersectCircles(tempSeg, curA, 'cw');
         let sect1 = intersectCircles(tempSeg, curA, 'ccw');
@@ -1388,7 +1398,7 @@ class App extends React.Component {
     if (Object.keys(s.researchOpts).length == 1) {
       let research = Object.keys(s.researchOpts)[0]
       if (research == 'dest') {
-      this.startResearch(s, Object.keys(s.researchOpts)[0])
+        this.startResearch(s, Object.keys(s.researchOpts)[0])
       }
     }
   }
