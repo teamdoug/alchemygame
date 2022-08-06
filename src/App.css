@@ -144,12 +144,32 @@ input[type=range] {
   margin: 0px;
 }
 
+.resourceName {
+  text-align: right;
+}
+
+@media only screen and (min-width: 1000px) {
+  .resourceName {
+    padding-left: 15px;
+    font-size: 1.5em;
+  }
+}
+
 span.buildCost {
   text-align: right;
 }
 
+h3.thin {
+  margin-top: 0px;
+  margin-bottom: 10px;
+}
+
 p.thin {
   margin: 0px;
+}
+
+.realResource .resource {
+  float: right;
 }
 
 .resource {
@@ -161,6 +181,7 @@ p.thin {
   /*background-color: rgb(87, 87, 87);*/
   position: relative;
   margin: 0px 0px 0px 0px;
+  max-width: 120px;
 }
 
 .resource>div {

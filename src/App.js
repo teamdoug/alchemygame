@@ -6,6 +6,7 @@ import { ReactComponent as Play } from './play.svg';
 import { ReactComponent as Gear } from './gear.svg';
 
 
+const gameDebug = true;
 const debug = true;
 const forceReset = false;
 const maxWidth = 4000;
@@ -76,11 +77,13 @@ const initStory = 'Woof! In the beginning God created the heavens and the earth.
   'She was going to make her own Doggy Dog World, but everything will go a little better with Dog\'s best friend, Human.';
 
 const story = [
-  [{ dest: 0 }, {}, 'With some of this earth, we can build a template for a circle. Once we draw ' +
+  [{ dest: 0 }, {}, 'Hi! I\'m Dog. I\'m so excited to build a world with you.', {confirm: "Hello, Dog"}],
+  
+  [{}, {}, 'With some of this earth, we can build a template for a circle. Once we draw ' +
     'the circle, it will give me inspiration for new patterns.', { confirm: 'Let\'s do this' }],
 
   [{ dest: 0 }, { startedDrawing: true }, 'I\'ll start drawing the circle. It\'ll be finished in no time.',
-  { confirm: 'I believe in you', delay: (debug ? 0 : 5) }],
+  { confirm: 'I believe in you', delay: (debug ? 0 : 4) }],
 
   [{ dest: 0 }, { startedDrawing: true }, 'Turns out drawing with my paws is really slow. I\'ll get better ' +
     'with practice, but do you think you can help me a little, Human?',
@@ -94,7 +97,7 @@ const story = [
   [{}, { unlockedSelector: true }, 'If you ever decide you don\'t like a circle, you can delete it with the Destructor',
   { confirm: 'Yikes, I\'ll keep that in mind' }],
 
-  [{}, { drawnTotal: 12, unlockSelector: true }, 'By the way, we can\'t have more than 12 circles without destabilizing ' +
+  [{}, { drawnTotal: 12, unlockedSelector: true }, 'By the way, we can\'t have more than 12 circles without destabilizing ' +
     'the world. You can use the Destructor to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
 
   [{ dest: 0 }, { researchConfirmed: true }, 'Ok, what if we take this earth, and use it to make...', { confirm: 'Make what?' }],
@@ -125,14 +128,14 @@ const story = [
   [{}, { madewater: true }, 'There are two things I\'m thinking of right now. One will give us a new resource, and ' +
     'one will help us make things faster. Which do you think I should work on?', { noConfirm: true }],
 
-  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true, delay: (debug ? 0 : 5) }],
+  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest' }, 'I love new things!', { confirm: "Let\'s do it", delay: (debug ? 0 : 5) }],
 
   [{ dest: 2, efficiency: 0 }, { curResearch: 'dest' },
     'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
 
   [{ dest: 2, efficiency: 1 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true }],
 
-  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { noConfirm: true, delay: (debug ? 0 : 5) }],
+  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { confirm: true, delay: (debug ? 0 : 5) }],
 
   [{ dest: 2 }, { curResearch: 'efficiency' },
     'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
@@ -154,10 +157,12 @@ const story = [
   [{ dest: 2 }, { curResearch: 'dest', researchConfirmed: true },
     'Earth won\'t make plants very efficiently. Water would be better, but plants themselves are best.', { confirm: 'Got it' }],
 
-  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest', researchConfirmed: true }, 'Time to research some efficiency, but we should also make some ' +
+  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest', researchConfirmed: true },
+  'Time to research some efficiency, but we should also make some ' +
     'plants while we\'re at it.', { confirm: 'Let\'s do it', completeResearch: true }],
 
-  [{ dest: 2, efficiency: 1 }, { curResearch: 'dest', researchConfirmed: true }, 'Once we\'ve made some grass, I\'ll start thinking of ' +
+  [{ dest: 2, efficiency: 1 }, { curResearch: 'dest', researchConfirmed: true },
+  'Once we\'ve made some grass, I\'ll start thinking of ' +
     'more things to improve.', { confirm: 'Let\'s do it', completeResearch: true, state: { warnedGrass: true } }],
 
   [{ dest: 3, efficiency: 1 }, { madeplants: false, warnedGrass: false }, 'Once we\'ve made some grass, I\'ll start thinking of ' +
@@ -211,7 +216,7 @@ const story = [
   [{ efficiency: 3, dest: 4, pressure: 2 }, { madeanimals: true }, 'Only one thing left to think about! The ultimate creation!', { noConfirm: true }],
 
   [{ dest: 3 }, { curResearch: 'dest', researchConfirmed: true },
-  'Now we have animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
+  'Now we can make animals! They\'re great for chasing. I think we\'re getting close to the ultimate ' +
   'creation.',
   { confirm: 'Don\'t get too distracted', completeResearch: true }],
 
@@ -263,22 +268,23 @@ const PROG = {
     unlockSlider: ['dest', 1],
     confirm: 'So what\'s your great idea?',
   }, {
-    ideaCost: 20,
+    ideaCost: 6,
     unlockSlider: ['dest', 2],
     confirm: 'What\'s next?',
   }, {
-    ideaCost: 70,
+    ideaCost: 60,
     triggerResource: 'water',
     unlockSlider: ['dest', 3],
     name: 'New things!',
   }, {
-    ideaCost: 400,
+    ideaCost: 600,
     triggerResource: 'plants',
     unlockSlider: ['dest', 4],
   }, {
-    ideaCost: 1200,
+    ideaCost: 2400,
     triggerResource: 'animals',
     unlockSlider: ['dest', 5],
+    reqResearch: ['efficiency', 2],
   }, {
     triggerResource: 'end',
   }],
@@ -298,7 +304,7 @@ const PROG = {
     triggerResource: 'end',
   }],
   'efficiency': [{
-    ideaCost: 50,
+    ideaCost: 60,
     triggerResource: 'water',
     name: 'Faster!',
     unlockSlider: ['efficiency', 1],
@@ -311,7 +317,7 @@ const PROG = {
     triggerResource: 'animals',
     unlockSlider: ['efficiency', 3],
   }, {
-    ideaCost: 2800,
+    ideaCost: 5600,
     triggerResource: 'dogs',
     unlockSlider: ['efficiency', 4],
   }, {
@@ -325,13 +331,16 @@ const PROG = {
     ideaCost: 600,
     triggerResource: 'animals',
     unlockSlider: ['pressure', 2],
+    reqResearch: ['efficiency', 2],
   }, {
-    ideaCost: 1500,
+    ideaCost: 6500,
     triggerResource: 'dogs',
     unlockSlider: ['pressure', 3],
+    reqResearch: ['efficiency', 3],
   }, {
-    ideaCost: 3600,
+    ideaCost: 12800,
     unlockSlider: ['pressure', 4],
+    reqResearch: ['efficiency', 4],
   }, {
     triggerResource: 'end',
   }],
@@ -389,7 +398,7 @@ function ResourceDiff(props) {
 class App extends React.Component {
   constructor(props) {
     super(props);
-    if (debug) {
+    if (debug || gameDebug) {
       window.game = this;
     }
     this.lastFrame = window.performance.now();
@@ -501,6 +510,7 @@ class App extends React.Component {
       modal: true,
       paused: false,
       showSettings: false,
+      showTips: false,
       modalMessage: initStory,
       confirmCancelDraw: false,
       confirmReset: false,
@@ -607,9 +617,12 @@ class App extends React.Component {
       return
     }
     if (pay && this.state.buildCost !== null) {
-      this.state.buildCost.forEach(({ name, cost }) => {
-        this.state.res[name].amount -= cost;
-      })
+      let bc = this.state.buildCost;
+      this.state.res[bc[0].name].amount -= bc[0].cost;
+      if (bc[1].name != bc[0].name) {
+        this.state.res[bc[1].name].amount -= bc[1].cost;
+      }
+
     }
     let tmCircle = this.clearCircle(this.state.previewCircle);
     this.setState({ tmCircle, showBuilder: false, startedDrawing: true })
@@ -659,9 +672,17 @@ class App extends React.Component {
 
       <div id="verticalFlex">
         <div id="flex">
-          {(s.modal || s.confirmCancelDraw || s.confirmReset || s.showSettings) && <div id="modal-bg">
+          {(s.modal || s.confirmCancelDraw || s.confirmReset || s.showSettings || s.showTips) && <div id="modal-bg">
             <div id="modal">
-              {s.showSettings && !s.confirmReset && <>
+            {s.showTips && <>
+                <h3 className="thin">Here are some collected tips from Dog</h3>
+                <p>Dog will get better at drawing for each circle you finish together.</p>
+                <p>Making many circles that make the same thing will power each other up.</p>
+                <button onClick={() => { this.setState({ showTips: false }) }}>OK</button>
+              </>}
+              {s.showSettings && !s.confirmReset && !s.showTips && <>
+                <p className="thin">Welcome to Doggy Dog World</p>
+                {/*<p><button onClick={() => { this.setState({ showTips: true }) }}>Tips</button></p>*/}
                 <p><button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button></p>
                 <button onClick={() => { this.setState({ showSettings: false }) }}>OK</button>
               </>}
@@ -669,9 +690,9 @@ class App extends React.Component {
               {s.confirmCancelDraw && <p>Abort your current circle to make a different circle?</p>}
               {s.gameDone && !s.doneConfirmed && <div>
                 <p>What a Doggy Dog World! Time to snoop around and have fun. Thanks for the help, Human!</p>
-                <p>Game made for <a style={{ color: '#87bbe6' }} href="https://itch.io/jam/summer-incremental-game-jam-2022">Summer Incremental Game Jam 2022</a> by heartosis</p>
-                <p>Dog Art by Greg</p>
-                <p>Special Thanks to Wife</p>
+                <p className="thin">Game made for <a style={{ color: '#87bbe6' }} href="https://itch.io/jam/summer-incremental-game-jam-2022">Summer Incremental Game Jam 2022</a> by heartosis</p>
+                <p className="thin">Dog Art by Greg</p>
+                <p className="thin">Special Thanks to Wife</p>
                 <p>Thank you for playing!</p>
               </div>}
               {s.modal && <p>{s.modalMessage}</p>}
@@ -705,7 +726,7 @@ class App extends React.Component {
             </div>
 
             <div style={{ display: "flex" }}>
-              <div style={{ flexGrow: 1 }}>
+              <div style={{ flexGrow: 1, textAlign: 'right' }}>
                 {s.gameDone && <span>You won!</span>}
                 <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
                 {s.researchComplete && !s.researchConfirmed && s.storyConfirm === null &&
@@ -726,8 +747,6 @@ class App extends React.Component {
                     this.setState((s) => { this.startResearch(s, 'pressure') })
                   }}>{PROG.pressure[s.prog.pressure].name ? PROG.pressure[s.prog.pressure].name : 'Pressure!'}</button>}
                 </>}
-              </div>
-              <div style={{ textAlign: 'right' }}>
                 {s.storyConfirm !== null &&
                   <button onClick={() => {
                     s.activeMessage = null;
@@ -740,8 +759,6 @@ class App extends React.Component {
                           }
                           s.doneStories[s.activeStory] = true;
                           let sto = story[s.activeStory];
-                          console.log('activesto', s.activeStory)
-                          console.log('sto', sto)
                           if (sto[3].state) {
                             Object.assign(s, sto[3].state)
                           }
@@ -774,22 +791,24 @@ class App extends React.Component {
                 }).map((name) => {
                   let gl = this.resourceGainLoss[name];
                   return (<tr key={name}>
-                    <td>{title(name)}</td>
-                    <td style={{ width: '100%' }}>
+                    <td className="resourceName">{title(name)}</td>
+                    <td className="realResource" style={{ width: '100%', textAlign: 'right' }}>
                       <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap} shiny={s.res[name].amount == s.res[name].cap}></Resource>
                     </td>
                     <td><ResourceDiff
                       gainFrac={gl.gainFrac}
                       lossFrac={gl.lossFrac}></ResourceDiff></td>
-                    <td><button onClick={() => s.res[name].amount += .2 * s.res[name].cap}>+{.2 * s.res[name].cap}</button>
-                      <button onClick={() => s.res[name].amount -= .2 * s.res[name].cap}>-{.2 * s.res[name].cap}</button></td>
-                    <td>+{(gl.gain > -1 ? gl.gain : s.res[name].gain).toFixed(6)} -{(gl.loss > -1 ? gl.loss : s.res[name].loss).toFixed(6)}</td>
+                    {debug && <>
+                      <td><button onClick={() => s.res[name].amount += .2 * s.res[name].cap}>+{.2 * s.res[name].cap}</button>
+                        <button onClick={() => s.res[name].amount -= .2 * s.res[name].cap}>-{.2 * s.res[name].cap}</button></td>
+                      <td>+{(gl.gain > -1 ? gl.gain : s.res[name].gain).toFixed(6)} -{(gl.loss > -1 ? gl.loss : s.res[name].loss).toFixed(6)}
+                      </td></>}
                   </tr>)
                 })}
               </tbody>
             </table>
             <div id="controls">
-              <span style={{ 'cursor': 'pointer', fontSize: '1em' }}
+              <span style={{ 'cursor': 'pointer', fontSize: '1em', marginRight: '5px' }}
                 onClick={() => { this.setState({ paused: !s.paused }) }}>
                 {s.paused ? <Play></Play> : <Pause></Pause>}</span>
               <span style={{ 'cursor': 'pointer', fontSize: '1.5em' }}
@@ -875,9 +894,12 @@ class App extends React.Component {
                     }}
                   ></input>}
                     {
-                      <div style={{ flexGrow: 1, width: '100%', display: 'flex', alignItems: 'center', visibility: (s.buildCost === null || s.buildCost[1].name === 'ideas' ? "hidden" : "visible") }}>
+                      <div style={{
+                        flexGrow: 1, width: '100%', display: 'flex', alignItems: 'center', visibility:
+                          (s.buildCost === null || s.buildCost[1].name === 'ideas' || s.buildCost[1].cost === 0 || s.buildCost[1].name === s.buildCost[0].name ? "hidden" : "visible")
+                      }}>
                         <div>Cost:&nbsp;</div>
-                        {(s.buildCost === null || s.buildCost[1].name === 'ideas') ?
+                        {(s.buildCost === null) ?
                           <div style={{ width: '100%' }}><Resource name="ideas" percent="20"></Resource></div>
                           : <div style={{ flexGrow: 1 }}><Resource name={s.buildCost[1].name} percent={100 * s.buildCost[1].cost / s.res[s.buildCost[1].name].cap}></Resource></div>
                         }
@@ -1497,6 +1519,9 @@ class App extends React.Component {
       if (s.res[next.triggerResource] && !s.res[next.triggerResource].visible) {
         continue
       }
+      if ('reqResearch' in next && s.prog[next.reqResearch[0]] < next.reqResearch[1]) {
+        continue
+      }
       if (!ideaCost) {
         this.completeFakeResearch(s, type)
         continue
@@ -1849,11 +1874,10 @@ class App extends React.Component {
     let source = builder.source;
     let eff = builder.efficiency;
     let press = dest == 0 ? 0 : builder.pressure;
-    let sourceCost = .15 + (dest / maxDest) * .3 +
-      ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .5
+    let sourceCost = .25 + (dest / maxDest) * .25 + (eff / maxEfficiency) ** .85 * .2 + (press / maxPressure) ** .75 * .25
     let destCost = 0;
     if (eff > 0 || press > 0) {
-      destCost = ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .75;
+      destCost = ((eff + 1) / (maxEfficiency + 1)) ** .5 * .25 + ((press + 1) / (maxPressure + 1)) ** .5 * .5;
     }
     if (dest == source) {
       return [
