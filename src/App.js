@@ -7,7 +7,7 @@ import { ReactComponent as Gear } from './gear.svg';
 import { toHaveFormValues } from '@testing-library/jest-dom/dist/matchers';
 
 
-const gameDebug = true;
+const gameDebug = false;
 const debug = false;
 const forceReset = false;
 const maxWidth = 4000;
