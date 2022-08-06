@@ -706,7 +706,7 @@ class App extends React.Component {
                 <p className="lessThin">Mouse over circles we've made to see how much they produce relative to each other. This
                 can help you decide which ones to destroy.</p>
                 <p className="lessThin">High pressure is critical to fill resource bars, even more than efficiency.</p>
-                <p className="lessThin">Fill every bar to win the game!</p>
+                <p className="lessThin">Resource bars glow yellow when full. Fill every bar to win the game!</p>
                 <button onClick={() => { this.setState({ showTips: false }) }}>OK</button>
               </>}
               {s.showSettings && !s.confirmReset && !s.showTips && <>
