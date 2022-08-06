@@ -1392,7 +1392,7 @@ class App extends React.Component {
         continue
       }
       if (!ideaCost) {
-        this.completeResearch(s, type)
+        this.completeFakeResearch(s, type)
         continue
       }
       if (ideaCost && s.curResearch === null) {
@@ -1424,13 +1424,20 @@ class App extends React.Component {
       params.efficiency + "_" + params.pressure)
   }
 
-  completeResearch = (s, type) => {
-    if (!type && (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost))) {
+  completeFakeResearch = (s, type) => {
+    let res = PROG[type][s.prog[type]]
+    if (res.unlockSlider) {
+      s.sliderUnlocks[res.unlockSlider[0]] = res.unlockSlider[1];
+    }
+
+    s.prog[type] += 1;
+  }
+
+  completeResearch = (s) => {
+    if (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost)) {
       return;
     }
-    if (!type) {
-      type = s.curResearch.type
-    }
+    let  type = s.curResearch.type
     let res = PROG[type][s.prog[type]]
     if (res.unlockSlider) {
       s.sliderUnlocks[res.unlockSlider[0]] = res.unlockSlider[1];
