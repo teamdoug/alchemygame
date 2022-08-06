@@ -18,6 +18,7 @@ const resources = {
   ideas: {
     color: '#7008a8',
     ideaEfficiency: 1,
+    level: 0,
   }, earth: {
     color: '#947e66',
     ideaEfficiency: 5,
@@ -58,6 +59,8 @@ const resources = {
     color: '#ffffff',
     ideaEfficiency: .13,
     level: 5,
+  }, magic: {
+    level: 1,
   }
 }
 const resMap = {
@@ -88,11 +91,11 @@ const story = [
   [{ dest: 0 }, { drawnTotal: 1 }, 'That\'s a nice circle. It\'s starting to give me some inspiration already. ' +
     'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.', { confirm: 'I can\'t wait!', state: { unlockedSelector: true } }],
 
-  [{}, { unlockedSelector: true }, 'If you ever decide you don\'t like a circle, you can delete it with the Selector',
+  [{}, { unlockedSelector: true }, 'If you ever decide you don\'t like a circle, you can delete it with the Destructor',
   { confirm: 'Yikes, I\'ll keep that in mind' }],
 
   [{}, { drawnTotal: 12, unlockSelector: true }, 'By the way, we can\'t have more than 12 circles without destabilizing ' +
-    'the world. You can use the selector to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
+    'the world. You can use the Destructor to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
 
   [{ dest: 0 }, { researchConfirmed: true }, 'Ok, what if we take this earth, and use it to make...', { confirm: 'Make what?' }],
 
@@ -677,7 +680,7 @@ class App extends React.Component {
               <div style={{ flexGrow: 1 }}>
                 {s.gameDone && <span>You won!</span>}
                 <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
-                {s.researchComplete && !s.researchConfirmed &&
+                {s.researchComplete && !s.researchConfirmed && s.storyConfirm === null &&
                   <button onClick={() => {
                     this.setState((s) => { return { researchConfirmed: true } });
                   }}>{s.curResearch.confirm ? s.curResearch.confirm : 'Tell me your new idea!'}</button>}
@@ -768,7 +771,7 @@ class App extends React.Component {
             </div>
           </div>
           <div className="panel leftPanel narrow">
-            <div className="big"><span style={s.showSelector || !s.unlockedSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Selector&nbsp;&gt;</span>
+            <div className="big"><span style={s.showSelector || !s.unlockedSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Destructor&nbsp;&gt;</span>
               {!s.showBuilder && <span style={{ marginLeft: '8px' }} onClick={() => this.setState({ showBuilder: true, showSelector: false }, () => { this.resizePreview(); this.createPreview() })}>Builder&nbsp;&gt;</span>}</div>
             <div id="#selector">
               <div>
@@ -880,7 +883,7 @@ class App extends React.Component {
             }
             {s.showSelector && <div id="selectorPanel">
               <div style={{ display: 'flex', margin: '5px', }}>
-                <div onClick={(e) => { this.setState({ showSelector: false }); e.preventDefault() }}>&lt;&nbsp;Selector</div>
+                <div onClick={(e) => { this.setState({ showSelector: false }); e.preventDefault() }}>&lt;&nbsp;Destructor</div>
               </div>
               {/* TODO !selectToDelete && <span>Select a circle to see more info</span>*/}
               {!s.selectToDelete && <button onClick={(e) => { this.setState({ selectToDelete: true, selectedCirclesDelete: {}, }); e.preventDefault() }}>Destroy Circles</button>}
@@ -1688,27 +1691,36 @@ class App extends React.Component {
 
   calcResource = (s, resource, amount, source, c) => {
     let { pressure, efficiency } = (c && c.params) || { pressure: 0, efficiency: 1 };
-    if (resource.amount > .9999 * resource.cap) {
+    let fullCap = .99
+    if (resource.name === 'ideas') {
+      fullCap = .9999
+    }
+    if (resource.amount > fullCap * resource.cap) {
       resource.amount = resource.cap;
       return [0, 0];
     }
     let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
-    if (resource.name != 'ideas' && resource.amount > .5) {
-      let exp = [5, 3, 1, 0.5, 1 / 3][pressure];
+    if (resource.name !== 'ideas' && resource.amount > .5) {
+      let exp = [6,5,4,3,2][pressure];
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
     if (source.amount < .5) {
       sourceMul = 1 - Math.cos(pi * source.amount);
     }
-    efficiency = [.1, .2, .3, .5, 1][efficiency] * 20
-    if (resource.name == 'ideas') {
+    efficiency = [.1, .2, .4, .8, 1.6][efficiency] * 20
+    if (resource.name === 'ideas') {
       efficiency *= resources[source.name].ideaEfficiency
     }
-    if (source.name != 'magic') {
-      efficiency *= Math.max(1, Math.log10(s.drawnDestTotals[resource.name] + 1))
-      efficiency *= Math.sqrt(Object.keys(s.drawnCircles[resource.name]).length)
+    let destLevel = resources[resource.name].level;
+    let sourceLevel = resources[source.name].level;
+    if (destLevel > sourceLevel) {
+      efficiency *= 0.5 ** (destLevel - sourceLevel)
+    }
+    if (source.name !== 'magic') {
+      efficiency *= Math.log10(.8*s.drawnDestTotals[resource.name] + 12)/Math.log10(2.4)-1.8383
+      efficiency *= Object.keys(s.drawnCircles[resource.name]).length ** 0.65 * 0.3 + 1
     }
     return [sourceMul * amount * destMul, destMul * amount * efficiency]
   }
@@ -1728,6 +1740,9 @@ class App extends React.Component {
       return {
         [sourceRes(builder)]: Math.max(sourceCost, destCost),
       }
+    }
+    if (destRes(builder) === 'ideas') {
+      destCost = 0;
     }
     return {
       [sourceRes(builder)]: sourceCost,
@@ -1842,6 +1857,9 @@ class App extends React.Component {
     window.addEventListener("resize", this.resizeCanvas);
     this.resizeCanvas();
     this.renderID = window.requestAnimationFrame(this.gameLoop);
+    if (this.state.paused) {
+      setTimeout(() => {this.forceUpdate()}, 0)
+    }
   }
 
   componentWillUnmount() {
