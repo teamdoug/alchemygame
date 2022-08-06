@@ -6,8 +6,8 @@ import { ReactComponent as Play } from './play.svg';
 import { ReactComponent as Gear } from './gear.svg';
 
 
-const gameDebug = true;
-const debug = true;
+const gameDebug = false;
+const debug = false;
 const forceReset = false;
 const maxWidth = 4000;
 const maxHeight = 4500;
@@ -38,7 +38,7 @@ const resources = {
     level: 4,
   }, dogs: {
     color: '#cf1b1b',
-    ideaEfficiency: 1000,
+    ideaEfficiency: 800,
     level: 5,
   }, heaven: {
     color: '#FFD700',
@@ -174,7 +174,7 @@ const story = [
     'world full of things, so we\'ll need to figure that out eventually.', { noConfirm: true }],
 
   [{ efficiency: 1 }, { curResearch: 'efficiency', researchConfirmed: true },
-    'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.',
+    'With some decorations around our outer anchors, the circle will be more efficient.',
   { confirm: 'More work to draw', completeResearch: true }],
 
   [{ pressure: 0 }, { curResearch: 'pressure', researchConfirmed: true },
@@ -182,15 +182,15 @@ const story = [
   'us fill the world better.', { confirm: 'Fill it up!', completeResearch: true }],
 
   [{ pressure: 1 }, { curResearch: 'pressure', researchConfirmed: true },
-    'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.',
+    'With stabilizing lines in our inner circle, the circle will press harder against the void.',
   { confirm: 'Fill it up!', completeResearch: true }],
 
   [{ efficiency: 2 }, { curResearch: 'efficiency', researchConfirmed: true },
-    'With some decorations around our outer anchors, the circle will be more efficient.',
+    'With bigger anchors in our outer circle, we\'ll be able to create things more efficiently.',
   { confirm: 'More decorations!', completeResearch: true }],
 
   [{ pressure: 2 }, { curResearch: 'pressure', researchConfirmed: true },
-    'With stabilizing lines in our inner circle, the circle will press harder against the void.',
+    'With bigger anchors in our inner circle, we\'ll help get the world a little fuller.',
   { confirm: 'Fill it up!', completeResearch: true }],
 
   [{ efficiency: 3 }, { curResearch: 'efficiency', researchConfirmed: true },
@@ -234,7 +234,8 @@ const story = [
 
   [{ efficiency: 3, dest: 5, pressure: 4 }, {}, 'Only one thing left to think about! Time to get maximum efficiency!', { noConfirm: true }],
 
-  [{ efficiency: 4, dest: 5, pressure: 4 }, {}, 'I don\'t think there\'s any more inspiration to be had. If we can just fill the world with everything, ' +
+  [{ efficiency: 4, dest: 5, pressure: 4 }, {},
+    'I don\'t think there\'s any more inspiration to be had. Once we use all this pressure and fill the world with everything, ' +
     'it will be a Doggy Dog World!', { noConfirm: true, state: { researchAllDone: true } }],
 ]
 
@@ -263,7 +264,7 @@ const sayings = [
 
 const PROG = {
   'dest': [{
-    ideaCost: .5,
+    ideaCost: .6,
     triggerResource: 'ideas',
     unlockSlider: ['dest', 1],
     confirm: 'So what\'s your great idea?',
@@ -272,16 +273,16 @@ const PROG = {
     unlockSlider: ['dest', 2],
     confirm: 'What\'s next?',
   }, {
-    ideaCost: 60,
+    ideaCost: 120,
     triggerResource: 'water',
     unlockSlider: ['dest', 3],
     name: 'New things!',
   }, {
-    ideaCost: 600,
+    ideaCost: 1500,
     triggerResource: 'plants',
     unlockSlider: ['dest', 4],
   }, {
-    ideaCost: 2400,
+    ideaCost: 5400,
     triggerResource: 'animals',
     unlockSlider: ['dest', 5],
     reqResearch: ['efficiency', 2],
@@ -309,15 +310,15 @@ const PROG = {
     name: 'Faster!',
     unlockSlider: ['efficiency', 1],
   }, {
-    ideaCost: 200,
+    ideaCost: 120,
     triggerResource: 'plants',
     unlockSlider: ['efficiency', 2],
   }, {
-    ideaCost: 1200,
+    ideaCost: 2200,
     triggerResource: 'animals',
     unlockSlider: ['efficiency', 3],
   }, {
-    ideaCost: 5600,
+    ideaCost: 12600,
     triggerResource: 'dogs',
     unlockSlider: ['efficiency', 4],
   }, {
@@ -333,12 +334,12 @@ const PROG = {
     unlockSlider: ['pressure', 2],
     reqResearch: ['efficiency', 2],
   }, {
-    ideaCost: 6500,
+    ideaCost: 12500,
     triggerResource: 'dogs',
     unlockSlider: ['pressure', 3],
     reqResearch: ['efficiency', 3],
   }, {
-    ideaCost: 12800,
+    ideaCost: 35800,
     unlockSlider: ['pressure', 4],
     reqResearch: ['efficiency', 4],
   }, {
@@ -675,14 +676,17 @@ class App extends React.Component {
           {(s.modal || s.confirmCancelDraw || s.confirmReset || s.showSettings || s.showTips) && <div id="modal-bg">
             <div id="modal">
             {s.showTips && <>
-                <h3 className="thin">Here are some collected tips from Dog</h3>
-                <p>Dog will get better at drawing for each circle you finish together.</p>
-                <p>Making many circles that make the same thing will power each other up.</p>
+                <h3 className="lessThin">Here are some collected tips from Dog</h3>
+                <p className="lessThin">Keep drawing circles! I'll get better at drawing for each circle we finish together,
+                  and circles that make the same thing power each other up, even we destroy them later.
+                </p>
+                <p className="lessThin">Pressure is critical to get the strongest circles and completely fill the world.</p>
+                <p className="lessThin">Mouse over circles we've made to see how much they produce relative to each other.</p>
                 <button onClick={() => { this.setState({ showTips: false }) }}>OK</button>
               </>}
               {s.showSettings && !s.confirmReset && !s.showTips && <>
                 <p className="thin">Welcome to Doggy Dog World</p>
-                {/*<p><button onClick={() => { this.setState({ showTips: true }) }}>Tips</button></p>*/}
+                {<p><button onClick={() => { this.setState({ showTips: true }) }}>Tips</button></p>}
                 <p><button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button></p>
                 <button onClick={() => { this.setState({ showSettings: false }) }}>OK</button>
               </>}
@@ -1023,7 +1027,7 @@ class App extends React.Component {
     let outerAnchorRadius = state.builder.efficiency >= 3 ? .12 : .08;
     let innerAnchorRadius = state.builder.pressure >= 3 ? .12 : .08;
     let mainRadius = 1 - outerAnchorRadius;
-    let enlargedAnchorRadius = outerAnchorRadius + .06;
+    let enlargedAnchorRadius = outerAnchorRadius + .1;
     if (state.builder.heavenly == 1) {
       segments.push({
         type: 'arc',
@@ -1840,7 +1844,7 @@ class App extends React.Component {
     let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
     if (resource.name !== 'ideas' && resource.amount > .5) {
-      let exp = [6, 5, 4, 3, 2][pressure];
+      let exp = [8, 6, 4, 3, 2.1][pressure];
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
@@ -1874,7 +1878,7 @@ class App extends React.Component {
     let source = builder.source;
     let eff = builder.efficiency;
     let press = dest == 0 ? 0 : builder.pressure;
-    let sourceCost = .25 + (dest / maxDest) * .25 + (eff / maxEfficiency) ** .85 * .2 + (press / maxPressure) ** .75 * .25
+    let sourceCost = .25 + (dest / maxDest) ** .85 * .25 + (eff / maxEfficiency) ** .85 * .2 + (press / maxPressure) ** .75 * .25
     let destCost = 0;
     if (eff > 0 || press > 0) {
       destCost = ((eff + 1) / (maxEfficiency + 1)) ** .5 * .25 + ((press + 1) / (maxPressure + 1)) ** .5 * .5;

@@ -5,8 +5,6 @@
 * Animate and fix builder button
 * Dog gives hints and says useless things (haha)
 * flash to indicate unlocks
-* test colorblind (names on costs?)
-* tips screen
 * fix research complete alignment
 ### Mobile
 * View info about circles for mobile
