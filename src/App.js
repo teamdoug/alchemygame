@@ -702,7 +702,7 @@ class App extends React.Component {
                   provides an even bigger bonus.
                 </p>
                 <p className="lessThin">Earlier resources are worse at making later resources. Circles are strongest when producing
-                their own element or earlier. However, ideas always benefits from using the latest resources.</p>
+                their own element or earlier. However, inspiration always benefits from using the latest resources.</p>
                 <p className="lessThin">Mouse over circles we've made to see how much they produce relative to each other. This
                 can help you decide which ones to destroy.</p>
                 <p className="lessThin">High pressure is critical to fill resource bars, even more than efficiency.</p>
@@ -2305,6 +2305,9 @@ function overlaps(s, t) {
 }
 
 function title(name) {
+  if (name === 'ideas') {
+    return 'Inspiration'
+  }
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 function destRes(circle) {
