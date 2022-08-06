@@ -25,19 +25,19 @@ const resources = {
     level: 1,
   }, water: {
     color: '#1144bd',
-    ideaEfficiency: 15,
+    ideaEfficiency: 25,
     level: 2,
   }, plants: {
     color: '#119915',
-    ideaEfficiency: 45,
+    ideaEfficiency: 100,
     level: 3,
   }, animals: {
     color: '#ffffff',
-    ideaEfficiency: 120,
+    ideaEfficiency: 300,
     level: 4,
   }, dogs: {
     color: '#cf1b1b',
-    ideaEfficiency: 500,
+    ideaEfficiency: 1000,
     level: 5,
   }, heaven: {
     color: '#FFD700',
@@ -125,9 +125,19 @@ const story = [
   [{}, { madewater: true }, 'There are two things I\'m thinking of right now. One will give us a new resource, and ' +
     'one will help us make things faster. Which do you think I should work on?', { noConfirm: true }],
 
-  [{ dest: 2 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true }],
+  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true, delay: (debug ? 0 : 5) }],
 
-  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { noConfirm: true }],
+  [{ dest: 2, efficiency: 0 }, { curResearch: 'dest' },
+    'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
+
+
+  [{ dest: 2, efficiency: 1 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true }],
+
+  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { noConfirm: true, delay: (debug ? 0 : 5) }],
+
+  [{ dest: 2 }, { curResearch: 'efficiency' },
+    'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
+
 
   [{}, { curResearch: 'efficiency', researchConfirmed: true },
   'If we change our outer circle some, I think we can make our transmutations more ' +
@@ -149,7 +159,7 @@ const story = [
     'more things to improve.', { noConfirm: true }],
 
   // Complete research + Present research decision
-  [{ dest: 3 }, { madeplants: true }, 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
+  [{ dest: 3, efficiency: 1 }, { madeplants: true }, 'We have lots of options for inspiration now. I even think there\'s a way to make ' +
     'our transmutation circles push harder against the void. Doggy Dog World is going to be a ' +
     'world full of things, so we\'ll need to figure that out eventually.', { noConfirm: true }],
 
@@ -248,20 +258,20 @@ const PROG = {
     unlockSlider: ['dest', 1],
     confirm: 'So what\'s your great idea?',
   }, {
-    ideaCost: 1.5,
+    ideaCost: 20,
     unlockSlider: ['dest', 2],
     confirm: 'What\'s next?',
   }, {
-    ideaCost: 2,
+    ideaCost: 70,
     triggerResource: 'water',
     unlockSlider: ['dest', 3],
     name: 'New things!',
   }, {
-    ideaCost: 4,
+    ideaCost: 400,
     triggerResource: 'plants',
     unlockSlider: ['dest', 4],
   }, {
-    ideaCost: 8,
+    ideaCost: 1200,
     triggerResource: 'animals',
     unlockSlider: ['dest', 5],
   }, {
@@ -283,39 +293,39 @@ const PROG = {
     triggerResource: 'end',
   }],
   'efficiency': [{
-    ideaCost: 4,
+    ideaCost: 50,
     triggerResource: 'water',
     name: 'Faster!',
     unlockSlider: ['efficiency', 1],
   }, {
-    ideaCost: 6,
+    ideaCost: 200,
     triggerResource: 'plants',
     unlockSlider: ['efficiency', 2],
   }, {
-    ideaCost: 8,
+    ideaCost: 1200,
     triggerResource: 'animals',
     unlockSlider: ['efficiency', 3],
   }, {
-    ideaCost: 12,
+    ideaCost: 2800,
     triggerResource: 'dogs',
     unlockSlider: ['efficiency', 4],
   }, {
     triggerResource: 'end',
   }],
   'pressure': [{
-    ideaCost: 6,
+    ideaCost: 200,
     triggerResource: 'plants',
     unlockSlider: ['pressure', 1],
   }, {
-    ideaCost: 8,
+    ideaCost: 600,
     triggerResource: 'animals',
     unlockSlider: ['pressure', 2],
   }, {
-    ideaCost: 16,
+    ideaCost: 1500,
     triggerResource: 'dogs',
     unlockSlider: ['pressure', 3],
   }, {
-    ideaCost: 20,
+    ideaCost: 3600,
     unlockSlider: ['pressure', 4],
   }, {
     triggerResource: 'end',
@@ -538,7 +548,7 @@ class App extends React.Component {
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
     state.tmCircle = null;
-    this.drawCanvas(this.canvas, state.tmCircle, this.transform, true)
+    this.drawCanvas(this.canvas, state.tmCircle, this.transform, true, 1)
     return state;
   }
 
@@ -556,14 +566,14 @@ class App extends React.Component {
     let s = this.state;
     if (this.canvas.current !== null) {
       this.drawCanvas(
-        this.canvas, s.tmCircle, this.transform, this.forceRedraw
+        this.canvas, s.tmCircle, this.transform, this.forceRedraw, 1
       );
     }
 
     for (const [index, circle] of this.undrawnCompleted) {
       this.completedCanvases[index].current.width = completedSize
       this.completedCanvases[index].current.height = completedSize
-      this.drawCanvas(this.completedCanvases[index], circle, this.completedTransform, true)
+      this.drawCanvas(this.completedCanvases[index], circle, this.completedTransform, true, 2)
     };
     this.undrawnCompleted = new Map();
 
@@ -734,7 +744,7 @@ class App extends React.Component {
                 {debug &&
                   <button disabled={s.tmCircle === null} onClick={() => {
                     this.completeCircle(s, s.tmCircle);
-                    this.drawCanvas(this.canvas, s.tmCircle, this.transform, true)
+                    this.drawCanvas(this.canvas, s.tmCircle, this.transform, true, 1)
                   }}>Cheat Circle</button>}
               </div>
             </div>
@@ -752,8 +762,8 @@ class App extends React.Component {
                     <td><ResourceDiff
                       gainFrac={gl.gainFrac}
                       lossFrac={gl.lossFrac}></ResourceDiff></td>
-                    <td><button onClick={() => s.res[name].amount += (name === 'ideas' ? 1 : .1)}>+.1</button>
-                      <button onClick={() => s.res[name].amount -= .1}>-.1</button></td>
+                    <td><button onClick={() => s.res[name].amount += .2 * s.res[name].cap}>+{.2 * s.res[name].cap}</button>
+                      <button onClick={() => s.res[name].amount -= .2 * s.res[name].cap}>-{.2 * s.res[name].cap}</button></td>
                     <td>+{(gl.gain > -1 ? gl.gain : s.res[name].gain).toFixed(6)} -{(gl.loss > -1 ? gl.loss : s.res[name].loss).toFixed(6)}</td>
                   </tr>)
                 })}
@@ -859,7 +869,11 @@ class App extends React.Component {
                     ref={this.previewCanvas}
                   ></canvas>
                 </div>
-                {s.completedCircles.length >= maxCircles && <span>Maximum circle count reached. Select circles to delete to draw more.</span>}
+                <div>
+                {(s.tmCircle !== null && !s.tmCircle.done) ? 'Can\'t start a new circle until finishing or aborting the current one.' :
+                 (s.completedCircles.length >= maxCircles ? 'Circle limit reached. Use Destructor to destroy less useful circles.' :
+                 (!this.haveCost() ? 'Can\'t afford circle. Check cost above.' :''))}
+                </div>
                 <div style={{ display: 'flex' }}>
                   <div style={{ 'textAlign': 'left', 'flexGrow': 1 }}>
                     <button disabled={s.tmCircle === null} onClick={() => this.setState({ confirmCancelDraw: true })}>Abort Drawing</button>
@@ -931,7 +945,7 @@ class App extends React.Component {
     let previewCircle = this.createCircle(s, true);
     const previewCanvas = this.previewCanvas;
     if (this.previewCanvas.current !== null) {
-      this.drawCanvas(previewCanvas, previewCircle, this.previewTransform, true)
+      this.drawCanvas(previewCanvas, previewCircle, this.previewTransform, true, 2)
     }
     this.setState({ previewCircle })
   }
@@ -1064,13 +1078,25 @@ class App extends React.Component {
     }
     if (state.builder.efficiency >= 4) {
       for (let i = 0; i < state.builder.source; i++) {
+        let topCenter = [outerAnchors[i].center[0], outerAnchors[i].center[1]+outerAnchorRadius/4]
         segments.push({
           type: 'arc',
-          center: outerAnchors[i].center,
+          center: topCenter,
           radius: outerAnchorRadius / 2,
-          start: 0,
-          end: 1,
-        });
+          start: .1,
+          end: .9,
+        })
+
+        let start = [topCenter[0], topCenter[1]];
+        let end = [topCenter[0], topCenter[1] - outerAnchorRadius];
+        let len = outerAnchorRadius;
+        segments.push({
+          type: 'line',
+          start,
+          end,
+          len,
+          lenSq: len*len,
+        })
       }
     }
 
@@ -1092,6 +1118,7 @@ class App extends React.Component {
         radius: innerRadius,
         start: 0,
         end: 1,
+        lineWidth: 1.5,
       });
     }
     let innerAnchors = [];
@@ -1108,7 +1135,7 @@ class App extends React.Component {
       });
     }
     segments.push(...innerAnchors);
-    if (state.builder.pressure >= 1) {
+    if (state.builder.pressure >= 1 && state.builder.dest != 0) {
       segments.push({
         type: 'arc',
         center: [0, 0],
@@ -1190,10 +1217,27 @@ class App extends React.Component {
         segments.push({
           type: 'arc',
           center: innerAnchors[i].center,
-          radius: innerAnchorRadius / 2,
+          radius: 3 * innerAnchorRadius / 5,
           start: 0,
+          end: .35,
+        });
+        segments.push({
+          type: 'arc',
+          center: innerAnchors[i].center,
+          radius: 3 * innerAnchorRadius / 5,
+          start: .65,
           end: 1,
         });
+        let start = [innerAnchors[i].center[0], innerAnchors[i].center[1] + 3*innerAnchorRadius/5];
+        let end = [start[0], start[1] - 2*innerAnchorRadius/3];
+        let len = 2*innerAnchorRadius /3;
+        segments.push({
+          type: 'line',
+          start,
+          end,
+          len,
+          lenSq: len*len,
+        })
       }
     }
 
@@ -1204,7 +1248,7 @@ class App extends React.Component {
   cancelDraw = () => {
     this.state.tmCircle = null
     this.newSegments = [];
-    this.drawCanvas(this.canvas, null, this.transform, true)
+    this.drawCanvas(this.canvas, null, this.transform, true, 1)
   }
 
   completedMouseEnter = (c) => {
@@ -1256,7 +1300,7 @@ class App extends React.Component {
     return { segments, index: this.circleIndex++, done, params, insideStart, key: this.getCircleKey(params) }
   }
 
-  drawCanvas = (canvas, tmCircle, transform, forceRedraw) => {
+  drawCanvas = (canvas, tmCircle, transform, forceRedraw, lineScale) => {
     const w = canvas.current.width;
     const h = canvas.current.height;
     const centerX = w / 2;
@@ -1272,18 +1316,20 @@ class App extends React.Component {
     }
     ctx.setTransform(transform);
     ctx.lineCap = "round";
-    let planPaths = [];
-    let insideDonePaths = [];
-    let outsideDonePaths = [];
     tmCircle.segments.forEach((seg, segIndex) => {
       let donePaths = [];
+      let planPaths = [];
+
+      let insideDonePaths = [];
+      let outsideDonePaths = [];
+  
       if (segIndex < tmCircle.insideStart) {
         donePaths = outsideDonePaths;
       } else {
         donePaths = insideDonePaths;
       }
+      ctx.lineWidth = this.baseLineWidth * seg.lineWidth * lineScale;
       if (forceRedraw) {
-        ctx.lineWidth = this.baseLineWidth * seg.lineWidth;
         if (seg.type === 'arc') {
           if (!seg.done && forceRedraw) {
             let planPath = new Path2D();
@@ -1363,6 +1409,7 @@ class App extends React.Component {
       for (const donePath of outsideDonePaths) {
         ctx.stroke(donePath);
       }
+        
       ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.dest]].color;
       for (const donePath of insideDonePaths) {
         ctx.stroke(donePath);
@@ -1409,7 +1456,7 @@ class App extends React.Component {
     }
     if (Object.keys(s.researchOpts).length == 1) {
       let research = Object.keys(s.researchOpts)[0]
-      if (research == 'dest') {
+      if (research === 'dest' || (research == 'efficiency' && s.prog[research] === 0)) {
         this.startResearch(s, Object.keys(s.researchOpts)[0])
       }
     }
@@ -1745,7 +1792,7 @@ class App extends React.Component {
     let source = builder.source;
     let eff = builder.efficiency;
     let press = dest == 0 ? 0 : builder.pressure;
-    let sourceCost = .15 + (dest / maxDest) * .35 +
+    let sourceCost = .15 + (dest / maxDest) * .3 +
       ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .5
     let destCost = 0;
     if (eff > 0 || press > 0) {

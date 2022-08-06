@@ -131,6 +131,8 @@ canvas.destroySelect {
 .resource.shiny {
   animation: shinyColor 2s ease infinite;
   border-color: #FFD700;
+  border: 3px solid;
+
 }
 
 .resource {
@@ -149,7 +151,7 @@ canvas.destroySelect {
 
 .resourceDiff {
   position: relative;
-  margin-left: 4px;
+  margin-left: 8px;
 }
 
 .resourceDiff .hidden {
