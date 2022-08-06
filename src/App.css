@@ -22,11 +22,12 @@ body {
 }
 
 .panel {
+  flex-grow: 1;
   background-color: rgba(255, 255, 255, 0.08);
 }
 
 #resourcePanel {
-  display:flex;
+  display: flex;
   flex-direction: column;
 }
 
@@ -52,6 +53,12 @@ body {
   max-width: 200px;
 }
 
+@media only screen and (max-width: 850px) {
+  .leftPanel.narrow {
+    max-width: 105px;
+  }
+}
+
 canvas.destroySelect {
   background-color: #9c2d21;
 }
@@ -64,10 +71,7 @@ canvas.destroySelect {
   max-width: 300px;
 }
 
-#builderCost {
-  margin-left: 20px;
-  margin-right: 5px;
-}
+
 
 #selectorPanel {
   background-color: rgba(47, 47, 47, .95);
@@ -78,16 +82,17 @@ canvas.destroySelect {
 }
 
 @media only screen and (min-height: 500px) {
-  #log {
-    position: absolute;
-    bottom: 0;
-    height: 150px;
-  }
-
   .leftPanel {
     overflow: hidden;
   }
 }
+
+@media only screen and (max-width: 1000px) {
+  .panel {
+    max-width: calc(100vh);
+  }
+}
+
 
 #mainPanel {
   flex-grow: 5;
@@ -135,14 +140,27 @@ canvas.destroySelect {
 
 }
 
+input[type=range] {
+  margin: 0px;
+}
+
+span.buildCost {
+  text-align: right;
+}
+
+p.thin {
+  margin: 0px;
+}
+
 .resource {
   border-radius: 6px;
   border: 2px solid;
   border-color: #ffffff;
-  width: 100%;
+  width: calc(100% - 6px);
   height: 8px;
   /*background-color: rgb(87, 87, 87);*/
   position: relative;
+  margin: 0px 0px 0px 0px;
 }
 
 .resource>div {
@@ -194,6 +212,16 @@ canvas.destroySelect {
   display: flex;
 }
 
+#lily {
+  width: 80px;
+}
+
+@media only screen and (max-width: 900px) {
+  #lily {
+    max-width: 45px;
+  }
+}
+
 #dogCaret {
   height: 0px;
   border-top: 4px solid transparent;
@@ -229,7 +257,7 @@ canvas.destroySelect {
   height: auto;
   top: 50%;
   left: 50%;
-  transform: translate(-50%,-50%);
+  transform: translate(-50%, -50%);
   text-align: center;
   padding: 20px;
   border: 2px white solid;

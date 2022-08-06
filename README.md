@@ -7,6 +7,7 @@
 * flash to indicate unlocks
 * test colorblind (names on costs?)
 * tips screen
+* fix research complete alignment
 ### Mobile
 * View info about circles for mobile
 * Fix middle column width

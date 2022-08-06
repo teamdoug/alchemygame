@@ -499,7 +499,8 @@ class App extends React.Component {
       madeanimals: false,
       madedogs: false,
       modal: true,
-      paused: true,
+      paused: false,
+      showSettings: false,
       modalMessage: initStory,
       confirmCancelDraw: false,
       confirmReset: false,
@@ -521,7 +522,7 @@ class App extends React.Component {
     state.res.end = { visible: false }
     state.tmCircle = null; //this.createCircle(state, false);
     this.newSegments = []; //state.tmCircle.segments.map(() => []);
-    state.buildCost = this.getBuildCost(state.builder);
+    state.buildCost = this.getBuildCost(state, state.builder);
     this.forceRedraw = true;
     return state;
   }
@@ -553,6 +554,7 @@ class App extends React.Component {
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
     state.tmCircle = null;
+    state.buildCost = this.getBuildCost(state, state.builder);
     this.drawCanvas(this.canvas, state.tmCircle, this.transform, true, 1)
     return state;
   }
@@ -592,7 +594,7 @@ class App extends React.Component {
     if (this.state.buildCost === null) {
       return true
     }
-    return Object.entries(this.state.buildCost).every(([name, cost]) => {
+    return this.state.buildCost.every(({ name, cost }) => {
       if (this.state.res[name].amount < cost) {
         return false
       }
@@ -605,7 +607,7 @@ class App extends React.Component {
       return
     }
     if (pay && this.state.buildCost !== null) {
-      Object.entries(this.state.buildCost).forEach(([name, cost]) => {
+      this.state.buildCost.forEach(({ name, cost }) => {
         this.state.res[name].amount -= cost;
       })
     }
@@ -650,15 +652,19 @@ class App extends React.Component {
 
     }
     if (document.getElementById('dogCaret') !== null) {
-      let lily = document.getElementById('lily').getBBox();
-      document.getElementById('dogCaret').style.marginTop = lily.y + lily.height * 16.5 / 32 + 'px';
+      let lily = document.getElementById('path526').getBoundingClientRect();
+      document.getElementById('dogCaret').style.marginTop = lily.y + window.scrollY - 4 + 'px';
     }
     return (
 
       <div id="verticalFlex">
         <div id="flex">
-          {(s.modal || s.confirmCancelDraw || s.confirmReset) && <div id="modal-bg">
+          {(s.modal || s.confirmCancelDraw || s.confirmReset || s.showSettings) && <div id="modal-bg">
             <div id="modal">
+              {s.showSettings && !s.confirmReset && <>
+                <p><button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button></p>
+                <button onClick={() => { this.setState({ showSettings: false }) }}>OK</button>
+              </>}
               {s.confirmReset && <p>Completely reset the game and start over?</p>}
               {s.confirmCancelDraw && <p>Abort your current circle to make a different circle?</p>}
               {s.gameDone && !s.doneConfirmed && <div>
@@ -681,7 +687,12 @@ class App extends React.Component {
           <div className="panel leftPanel" id="resourcePanel">
             <div id="dogBox">
               <div id="lilyBox">
-                <Lily id="lily" style={{ width: '80px', height: 'auto', marginLeft: '-5px' }} />
+                <Lily id="lily" style={{ height: 'auto', marginLeft: '-5px' }} />
+                <div style={{ position: 'absolute', left: '-2px', top: '15px' }}>
+                  <ResourceDiff
+                    gainFrac={this.resourceGainLoss.ideas.gainFrac}
+                    lossFrac={this.resourceGainLoss.ideas.lossFrac}></ResourceDiff>
+                </div>
               </div>
               {s.activeMessage !== null && <>
                 <div id="dogCaret" style={{}}></div>
@@ -759,11 +770,11 @@ class App extends React.Component {
             <table>
               <tbody>
                 {Object.keys(resources).filter((name) => {
-                  return s.res[name].visible
+                  return name === 'ideas' ? debug : s.res[name].visible
                 }).map((name) => {
                   let gl = this.resourceGainLoss[name];
                   return (<tr key={name}>
-                    <td>{name.charAt(0).toUpperCase() + name.slice(1)}</td>
+                    <td>{title(name)}</td>
                     <td style={{ width: '100%' }}>
                       <Resource name={name} percent={100 * s.res[name].amount / s.res[name].cap} shiny={s.res[name].amount == s.res[name].cap}></Resource>
                     </td>
@@ -782,20 +793,26 @@ class App extends React.Component {
                 onClick={() => { this.setState({ paused: !s.paused }) }}>
                 {s.paused ? <Play></Play> : <Pause></Pause>}</span>
               <span style={{ 'cursor': 'pointer', fontSize: '1.5em' }}
-                onClick={() => { this.setState({ paused: !s.paused }) }}>
+                onClick={() => { this.setState({ showSettings: true }) }}>
                 <Gear></Gear></span>
-              <button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button>
             </div>
           </div>
           <div className="panel leftPanel narrow">
-            <div className="big"><span style={s.showSelector || !s.unlockedSelector ? { visibility: 'hidden' } : {}} onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Destructor&nbsp;&gt;</span>
-              {!s.showBuilder && <span style={{ marginLeft: '8px' }} onClick={() => this.setState({ showBuilder: true, showSelector: false }, () => { this.resizePreview(); this.createPreview() })}>Builder&nbsp;&gt;</span>}</div>
+            <div className="big" style={{ display: 'flex', flexWrap: 'wrap' }}>
+              <div style={s.showSelector || !s.unlockedSelector ? { visibility: 'hidden', marginRight: '8px' } : { marginRight: '8px' }}
+                onClick={() => this.setState({ showSelector: true, showBuilder: false })}>Destructor&nbsp;&gt;</div>
+              <div style={s.showBuilder ? { visibility: 'hidden' } : {}}
+                onClick={() => this.setState({ showBuilder: true, showSelector: false }, () => { this.resizePreview(); this.createPreview() })}>Builder&nbsp;&gt;</div>
+            </div>
             <div id="#selector">
               <div>
                 {s.completedCircles.map((c) => {
                   return <canvas
                     onMouseEnter={() => { this.completedMouseEnter(c) }}
+                    onTouchStart={() => { this.completedMouseEnter(c) }}
                     onMouseLeave={() => { this.completedMouseLeave(c) }}
+                    onTouchCancel={() => { this.completedMouseLeave(c) }}
+                    onTouchEnd={() => { this.completedMouseLeave(c) }}
                     ref={this.completedCanvases[c.index]} key={c.index}
                     className={"completedCircle " + (s.selectedCirclesDelete[c.index] ? 'destroySelect' : '')}
                     onClick={s.showSelector ? (
@@ -810,75 +827,87 @@ class App extends React.Component {
           <div className="panel" id="mainPanel">
             {s.showBuilder && <div id="builderPanel">
               <div style={{ display: 'flex', margin: '5px', }}>
-                <div onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>&lt;&nbsp;Builder</div>
+                <div style={{ flexGrow: 1 }} onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>&lt;&nbsp;Builder</div>
                 <div id="builderCost">
-                  Cost: </div>
-                {s.buildCost !== null ?
-                  <div style={{ flexGrow: 1, width: '100%' }}>
-                    {Object.entries(s.buildCost).filter(([name, cost]) => cost > 0).
-                      map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap}></Resource></div>
-                      )}
-                  </div>
-                  : "Free to make again"}
+                  {s.buildCost === null && "Free to make again"}</div>
 
               </div>
               <div id="builder">
                 {/*<div>
                   Heavenly
                   </div>*/}
-                {s.sliderUnlocks.source >= 2 && <div>
-                  Consume
-                  <input type="range" min="1" max={this.state.sliderUnlocks.source} value={this.state.builder.source}
+                {s.sliderUnlocks.source >= 0 && <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ flexGrow: 1 }}><p className="thin">Consume</p>
+                    <div style={{}}>{title(sourceRes(this.state.builder))}</div>
+                  </div>
+                  <div>{<input type="range" min="1" max={this.state.sliderUnlocks.source} value={this.state.builder.source}
+                    style={s.sliderUnlocks.source >= 2 ? {} : { visibility: 'hidden' }}
                     onChange={(e) => {
                       this.setState((s) => {
                         let builder = { ...this.state.builder, source: parseInt(e.target.value) };
-                        return { builder, buildCost: this.getBuildCost(builder) }
+                        return { builder, buildCost: this.getBuildCost(s, builder) }
                       }, this.createPreview);
                       e.preventDefault();
                     }}
-                  ></input>
+                  ></input>}
+                    {
+                      <div style={{ flexGrow: 1, width: '100%', display: 'flex', alignItems: 'center', visibility: (s.buildCost === null ? "hidden" : "visible") }}>
+                        <div>Cost:&nbsp;</div>
+                        {s.buildCost === null ?
+                          <div style={{ width: '100%' }}><Resource name="ideas" percent="20"></Resource></div>
+                          : <div style={{ width: '100%' }}><Resource name={s.buildCost[0].name} percent={100 * s.buildCost[0].cost / s.res[s.buildCost[0].name].cap}></Resource></div>
+                        }
+                      </div>
+                    }</div>
                 </div>}
-                {s.sliderUnlocks.dest >= 1 && <div>
-                  Create
-                  <input type="range" min="0" max={this.state.sliderUnlocks.dest} value={this.state.builder.dest}
+                {s.sliderUnlocks.dest >= 0 && <div style={{ display: 'flex', marginBottom: '5px' }}>
+                  <div style={{ flexGrow: 1 }}><p className="thin">Create</p>
+                    <div style={{}}>{title(destRes(this.state.builder))}</div>
+                  </div>
+                  <div>{<input type="range" min="0" max={this.state.sliderUnlocks.dest} value={this.state.builder.dest}
+                    style={s.sliderUnlocks.dest >= 1 ? {} : { visibility: 'hidden' }}
                     onChange={(e) => {
                       this.setState((s) => {
                         let builder = { ...this.state.builder, dest: parseInt(e.target.value) };
-                        return { builder, buildCost: this.getBuildCost(builder) }
+                        return { builder, buildCost: this.getBuildCost(s, builder) }
                       }, this.createPreview);
                       e.preventDefault();
                     }}
-                  ></input>
+                  ></input>}
+                    {
+                      <div style={{ flexGrow: 1, width: '100%', display: 'flex', alignItems: 'center', visibility: (s.buildCost === null || s.buildCost[1].name === 'ideas' ? "hidden" : "visible") }}>
+                        <div>Cost:&nbsp;</div>
+                        {(s.buildCost === null || s.buildCost[1].name === 'ideas') ?
+                          <div style={{ width: '100%' }}><Resource name="ideas" percent="20"></Resource></div>
+                          : <div style={{ flexGrow: 1 }}><Resource name={s.buildCost[1].name} percent={100 * s.buildCost[1].cost / s.res[s.buildCost[1].name].cap}></Resource></div>
+                        }
+                      </div>
+                    }</div>
                 </div>}
-                {s.sliderUnlocks.efficiency >= 1 && <div>
-                  Efficiency
-                  <input type="range" min="0" max={this.state.sliderUnlocks.efficiency} value={this.state.builder.efficiency}
+                {s.sliderUnlocks.efficiency >= 1 && <div style={{ display: 'flex' }}>
+                  <div style={{ flexGrow: 1 }}>Efficiency</div>
+                  <div><input type="range" min="0" max={this.state.sliderUnlocks.efficiency} value={this.state.builder.efficiency}
                     onChange={(e) => {
                       this.setState((s) => {
                         let builder = { ...this.state.builder, efficiency: parseInt(e.target.value) };
-                        return { builder, buildCost: this.getBuildCost(builder) }
+                        return { builder, buildCost: this.getBuildCost(s, builder) }
                       }, this.createPreview);
                       e.preventDefault();
                     }}
-                  ></input>
+                  ></input></div>
                 </div>}
-                {s.sliderUnlocks.pressure >= 1 && s.builder.dest != 0 && <div>
-                  Pressure
-                  <input type="range" min="0" max={this.state.sliderUnlocks.pressure} value={this.state.builder.pressure}
+                {s.sliderUnlocks.pressure >= 1 && s.builder.dest != 0 && <div style={{ display: 'flex' }}>
+                  <div style={{ flexGrow: 1 }}>Pressure</div>
+                  <div><input type="range" min="0" max={this.state.sliderUnlocks.pressure} value={this.state.builder.pressure}
                     onChange={(e) => {
                       this.setState((s) => {
                         let builder = { ...this.state.builder, pressure: parseInt(e.target.value) };
-                        return { builder, buildCost: this.getBuildCost(builder) }
+                        return { builder, buildCost: this.getBuildCost(s, builder) }
                       }, this.createPreview);
                       e.preventDefault();
                     }}
-                  ></input>
+                  ></input></div>
                 </div>}
-                <div>
-                  <canvas id="previewCanvas"
-                    ref={this.previewCanvas}
-                  ></canvas>
-                </div>
                 <div>
                   {(s.tmCircle !== null && !s.tmCircle.done) ? 'Can\'t start a new circle until finishing or aborting the current one.' :
                     (s.completedCircles.length >= maxCircles ? 'Circle limit reached. Use Destructor to destroy less useful circles.' :
@@ -901,6 +930,12 @@ class App extends React.Component {
                     >Let's Draw It</button>
                   </div>
                 </div>
+                <div>
+                  <canvas id="previewCanvas"
+                    ref={this.previewCanvas}
+                  ></canvas>
+                </div>
+
               </div>
             </div>
             }
@@ -929,7 +964,7 @@ class App extends React.Component {
             </div>
           </div>
         </div>
-      </div>
+      </div >
     );
   }
 
@@ -1803,10 +1838,12 @@ class App extends React.Component {
     return [sourceMul * amount * destMul, destMul * amount * efficiency]
   }
 
-  getBuildCost = (builder) => {
-    let key = this.getCircleKey(builder);
-    if (key in this.state.drawnCircles[destRes(builder)]) {
-      return null;
+  getBuildCost = (state, builder) => {
+    if (state) {
+      let key = this.getCircleKey(builder);
+      if (key in state.drawnCircles[destRes(builder)]) {
+        return null;
+      }
     }
     let dest = builder.dest;
     let source = builder.source;
@@ -1819,17 +1856,18 @@ class App extends React.Component {
       destCost = ((eff + 1) / (maxEfficiency + 1) * (press + 1) / (maxPressure + 1)) * .75;
     }
     if (dest == source) {
-      return {
-        [sourceRes(builder)]: Math.max(sourceCost, destCost),
-      }
+      return [
+        { name: sourceRes(builder), cost: Math.max(sourceCost, destCost) },
+        { name: sourceRes(builder), cost: Math.max(sourceCost, destCost) },
+      ]
     }
     if (destRes(builder) === 'ideas') {
       destCost = 0;
     }
-    return {
-      [sourceRes(builder)]: sourceCost,
-      [destRes(builder)]: destCost,
-    }
+    return [
+      { name: sourceRes(builder), cost: sourceCost },
+      { name: destRes(builder), cost: destCost },
+    ]
   }
 
   mouseMove = (e) => {
@@ -2193,6 +2231,9 @@ function overlaps(s, t) {
   return false;
 }
 
+function title(name) {
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
 function destRes(circle) {
   let p = circle;
   if ('params' in circle) {
