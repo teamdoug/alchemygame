@@ -130,7 +130,6 @@ const story = [
   [{ dest: 2, efficiency: 0 }, { curResearch: 'dest' },
     'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
 
-
   [{ dest: 2, efficiency: 1 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true }],
 
   [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { noConfirm: true, delay: (debug ? 0 : 5) }],
@@ -138,16 +137,22 @@ const story = [
   [{ dest: 2 }, { curResearch: 'efficiency' },
     'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
 
-
   [{}, { curResearch: 'efficiency', researchConfirmed: true },
   'If we change our outer circle some, I think we can make our transmutations more ' +
   'efficient. The circles will cost more, but they\'ll generate more for the same input.', { completeResearch: true, confirm: 'Hm, tradeoffs' }],
+
+  [{efficiency: 1}, {},
+  'As we make more circles, our previous circles become more powerful. ' +
+  'Each circle we create powers up circles that make the same thing, especially if it\'s a new circle.', { confirm: 'More powerful circles are great!' }],
 
   [{ efficiency: 1, dest: 2 }, {}, 'Only one thing left to think about! I\'ll figure out what resource to make next.', { noConfirm: true }],
 
   [{ dest: 2 }, { curResearch: 'dest', researchConfirmed: true },
   'Oh boy! We can make plants now! Grass is my favorite plant! It\'s great for eating ' +
   'and for pooping in. Maybe not at the same time...', { confirm: 'Please not at the same time' }],
+
+  [{ dest: 2 }, { curResearch: 'dest', researchConfirmed: true },
+  'Earth won\'t make plants very efficiently. Water would be better, but plants themselves are best.', { confirm: 'Got it'}],
 
   [{ dest: 2, efficiency: 0 }, { curResearch: 'dest', researchConfirmed: true }, 'Time to research some efficiency, but we should also make some ' +
     'plants while we\'re at it.', { confirm: 'Let\'s do it', completeResearch: true }],
@@ -584,6 +589,9 @@ class App extends React.Component {
   }
 
   haveCost = () => {
+    if (this.state.buildCost === null) {
+      return true
+    }
     return Object.entries(this.state.buildCost).every(([name, cost]) => {
       if (this.state.res[name].amount < cost) {
         return false
@@ -596,7 +604,7 @@ class App extends React.Component {
     if (pay && !this.haveCost()) {
       return
     }
-    if (pay) {
+    if (pay && this.state.buildCost !== null) {
       Object.entries(this.state.buildCost).forEach(([name, cost]) => {
         this.state.res[name].amount -= cost;
       })
@@ -805,11 +813,13 @@ class App extends React.Component {
                 <div onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>&lt;&nbsp;Builder</div>
                 <div id="builderCost">
                   Cost: </div>
+                {s.buildCost !== null ? 
                 <div style={{ flexGrow: 1, width: '100%' }}>
                   {Object.entries(s.buildCost).filter(([name, cost]) => cost > 0).
                     map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap}></Resource></div>
                     )}
                 </div>
+                : "Free to make again"}
 
               </div>
               <div id="builder">
@@ -1788,6 +1798,10 @@ class App extends React.Component {
   }
 
   getBuildCost = (builder) => {
+    let key = this.getCircleKey(builder);
+    if (key in this.state.drawnCircles[destRes(builder)]) {
+      return null;
+    }
     let dest = builder.dest;
     let source = builder.source;
     let eff = builder.efficiency;

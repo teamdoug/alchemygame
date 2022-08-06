@@ -6,13 +6,12 @@
 * Dog gives hints and says useless things (haha)
 * flash to indicate unlocks
 * test colorblind (names on costs?)
-* tell user making more and more different things powers up that thing
-* remove cost or indicate already-made ones
-* tell user efficiency affected by distance
+* tips screen
 ### Mobile
 * View info about circles for mobile
-* Drawing less finicky. Have bigger slop range for segments already drawing?
+* Fix middle column width
 * The whole dang layout
+* smaller dog esp.
 
 ## Thoughts
 clouds -> water
