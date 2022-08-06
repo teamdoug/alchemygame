@@ -4,7 +4,6 @@ import { ReactComponent as Lily } from './lily_crop.svg';
 import { ReactComponent as Pause } from './pause.svg';
 import { ReactComponent as Play } from './play.svg';
 import { ReactComponent as Gear } from './gear.svg';
-import { toHaveFormValues } from '@testing-library/jest-dom/dist/matchers';
 
 
 const gameDebug = false;
@@ -98,7 +97,7 @@ const story = [
   [{}, { unlockedSelector: true }, 'If you ever decide you don\'t like a circle, you can delete it with the Destructor',
   { confirm: 'Yikes, I\'ll keep that in mind' }],
 
-  [{}, { drawnTotal: 12, unlockedSelector: true }, 'By the way, we can\'t have more than 12 circles without destabilizing ' +
+  [{}, { drawnTotal: 12, unlockedSelector: true }, 'By the way, we can\'t have more than a dozen circles without destabilizing ' +
     'the world. You can use the Destructor to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
 
   [{ dest: 0 }, { researchConfirmed: true }, 'Ok, what if we take this earth, and use it to make...', { confirm: 'Make what?' }],
@@ -136,7 +135,7 @@ const story = [
 
   [{ dest: 2, efficiency: 1 }, { curResearch: 'dest' }, 'I love new things!', { noConfirm: true }],
 
-  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { confirm: true, delay: (debug ? 0 : 5) }],
+  [{ dest: 2 }, { curResearch: 'efficiency' }, 'Faster it is!', { noConfirm: true, delay: (debug ? 0 : 5) }],
 
   [{ dest: 2 }, { curResearch: 'efficiency' },
     'Hm, this research could be going faster. I bet water will generate a lot more inspiration than earth.', { noConfirm: true }],
@@ -238,6 +237,12 @@ const story = [
   [{ efficiency: 4, dest: 5, pressure: 4 }, {},
     'I don\'t think there\'s any more inspiration to be had. Once we use all this pressure to fill the world with all the resources, ' +
     'it will be a Doggy Dog World!', { noConfirm: true, state: { researchAllDone: true } }],
+
+  [{}, {triggeredHint: true}, 'If you\'re feeling stuck, I collected some wisdom on a tips page in the settings.', {confirm: 'Thanks, that might help'}],
+
+  [{}, {triggeredFinalHint: true},
+    'In order to win, we\'ll need to fill the world by filling every resource bar. Check the tips on the settings page if you want my advice.',
+  {confirm: 'Let\'s fill this world'}]
 ]
 
 const sayings = [
@@ -404,6 +409,7 @@ class App extends React.Component {
       window.game = this;
     }
     this.lastFrame = window.performance.now();
+    this.updateFrame = window.performance.now();
     this.lastSave = window.performance.now();
     this.canvas = React.createRef();
     this.previewCanvas = React.createRef();
@@ -426,6 +432,15 @@ class App extends React.Component {
           this.state.storyDelay = null;
         }, this.state.storyDelay * 1000)
       }
+      if (!this.state.triggeredHint) {
+        this.state.triggeredHint = false
+      }
+      if (!this.state.triggeredFinalHint) {
+        this.state.triggeredFinalHint = false
+      }
+      if (this.state.storyConfirm === true) {
+        this.state.storyConfirm = 'Zoom zoom'
+      }
     } else {
       this.state = this.getInitState();
     }
@@ -441,6 +456,7 @@ class App extends React.Component {
     this.mouseClicked = false;
     this.completedCanvases = {};
     this.undrawnCompleted = new Map();
+    this.lastProgressFrame = 0;
     this.forceRedraw = true;
     this.resourceGainLoss = Object.keys(resources).reduce((result, r) => {
       result[r] = { gainFrac: -1, lossFrac: -1, gain: -1, loss: -1 }
@@ -528,6 +544,8 @@ class App extends React.Component {
       unlockedSelector: false,
       warnedGrass: false,
       researchAllDone: false,
+      triggeredHint: false,
+      triggeredFinalHint: false,
       selectedCirclesDelete: [],
     }
     state.res.earth.visible = true
@@ -680,10 +698,14 @@ class App extends React.Component {
             {s.showTips && <>
                 <h3 className="lessThin">Here are some collected tips from Dog</h3>
                 <p className="lessThin">Keep drawing circles! I'll get better at drawing for each circle we finish together,
-                  and circles that make the same thing power each other up, even if we destroy them later.
+                  and circles that make the same thing power each other up, even if we destroy them later. Making new circles
+                  provides an even bigger bonus.
                 </p>
-                <p className="lessThin">Mouse over circles we've made to see how much they produce relative to each other.</p>
-                <p className="lessThin">Pressure is critical to get the strongest circles and fill resource bars.</p>
+                <p className="lessThin">Earlier resources are worse at making later resources. Circles are strongest when producing
+                their own element or earlier.</p>
+                <p className="lessThin">Mouse over circles we've made to see how much they produce relative to each other. This
+                can help you decide which ones to destroy.</p>
+                <p className="lessThin">High pressure is critical to fill resource bars, even more than efficiency.</p>
                 <p className="lessThin">Fill every bar to win the game!</p>
                 <button onClick={() => { this.setState({ showTips: false }) }}>OK</button>
               </>}
@@ -738,26 +760,27 @@ class App extends React.Component {
                 <button style={/*spacer*/{ visibility: 'hidden' }}>S</button>
                 {s.researchComplete && !s.researchConfirmed && s.storyConfirm === null &&
                   <button onClick={() => {
-                    this.setState((s) => { return { researchConfirmed: true } });
+                    this.setState((s) => { this.lastProgressFrame = this.updateFrame; return { researchConfirmed: true } });
                   }}>{s.curResearch.confirm ? s.curResearch.confirm : 'Tell me your new idea!'}</button>}
                 {s.storyConfirm === null && <>
                   {'source' in s.researchOpts && <button onClick={() => {
-                    this.setState((s) => { this.startResearch(s, 'source') })
+                    this.setState((s) => { this.lastProgressFrame = this.updateFrame; this.startResearch(s, 'source') })
                   }}>Source</button>}
                   {'dest' in s.researchOpts && <button onClick={() => {
-                    this.setState((s) => { this.startResearch(s, 'dest') })
+                    this.setState((s) => { this.lastProgressFrame = this.updateFrame; this.startResearch(s, 'dest') })
                   }}>{PROG.dest[s.prog.dest].name ? PROG.dest[s.prog.dest].name : 'New resource!'}</button>}
                   {'efficiency' in s.researchOpts && <button onClick={() => {
-                    this.setState((s) => { this.startResearch(s, 'efficiency') })
+                    this.setState((s) => { this.lastProgressFrame = this.updateFrame; this.startResearch(s, 'efficiency') })
                   }}>{PROG.efficiency[s.prog.efficiency].name ? PROG.efficiency[s.prog.efficiency].name : 'Efficiency!'}</button>}
                   {'pressure' in s.researchOpts && <button onClick={() => {
-                    this.setState((s) => { this.startResearch(s, 'pressure') })
+                    this.setState((s) => { this.lastProgressFrame = this.updateFrame; this.startResearch(s, 'pressure') })
                   }}>{PROG.pressure[s.prog.pressure].name ? PROG.pressure[s.prog.pressure].name : 'Pressure!'}</button>}
                 </>}
                 {s.storyConfirm !== null &&
                   <button onClick={() => {
                     s.activeMessage = null;
                     s.storyConfirm = null;
+                    this.lastProgressFrame = this.updateFrame; 
                     if (s.storyDelay !== null) {
                       setTimeout(() => {
                         this.setState((s) => {
@@ -771,7 +794,7 @@ class App extends React.Component {
                           }
                           s.activeStory = null;
                           s.storyDelay = null;
-
+                          this.lastProgressFrame = this.updateFrame; 
                         })
                       }, s.storyDelay * 1000)
                     } else {
@@ -1626,6 +1649,7 @@ class App extends React.Component {
       if (!progMet) {
         continue
       }
+      this.lastProgressFrame = this.updateFrame
       s.activeStory = index;
       s.activeMessage = message;
       if (other.noConfirm) {
@@ -1662,6 +1686,12 @@ class App extends React.Component {
 
       this.checkProg(s);
       this.checkStory(s);
+      if (!this.state.triggeredHint && this.lastProgressFrame + 60000 < this.updateFrame) {
+        this.state.triggeredHint = true
+      }
+      if (!this.state.triggeredFinalHint && this.lastProgressFrame + 60000 < this.updateFrame && this.state.researchAllDone) {
+        this.state.triggeredFinalHint = true
+      }
       // Make this a dialog box or thing
       if (s.gameDone && !s.doneNotified) {
         s.modal = true
@@ -2052,6 +2082,7 @@ class App extends React.Component {
       if (this.state.paused) {
         continue;
       }
+      this.updateFrame = tFrame
       loopCount += 1;
       this.update(minDelta, debugFrame);
       debugFrame = false;
@@ -2089,6 +2120,7 @@ class App extends React.Component {
           }
           this.state.activeStory = null;
           this.state.storyDelay = null;
+          this.lastProgressFrame = this.updateFrame
         }, this.state.storyDelay * 1000)
       }
     } else {
