@@ -236,7 +236,7 @@ const story = [
   [{ efficiency: 3, dest: 5, pressure: 4 }, {}, 'Only one thing left to think about! Time to get maximum efficiency!', { noConfirm: true }],
 
   [{ efficiency: 4, dest: 5, pressure: 4 }, {},
-    'I don\'t think there\'s any more inspiration to be had. Once we use all this pressure and fill the world with everything, ' +
+    'I don\'t think there\'s any more inspiration to be had. Once we use all this pressure to fill the world with all the resources, ' +
     'it will be a Doggy Dog World!', { noConfirm: true, state: { researchAllDone: true } }],
 ]
 
@@ -680,10 +680,11 @@ class App extends React.Component {
             {s.showTips && <>
                 <h3 className="lessThin">Here are some collected tips from Dog</h3>
                 <p className="lessThin">Keep drawing circles! I'll get better at drawing for each circle we finish together,
-                  and circles that make the same thing power each other up, even we destroy them later.
+                  and circles that make the same thing power each other up, even if we destroy them later.
                 </p>
-                <p className="lessThin">Pressure is critical to get the strongest circles and completely fill the world.</p>
                 <p className="lessThin">Mouse over circles we've made to see how much they produce relative to each other.</p>
+                <p className="lessThin">Pressure is critical to get the strongest circles and fill resource bars.</p>
+                <p className="lessThin">Fill every bar to win the game!</p>
                 <button onClick={() => { this.setState({ showTips: false }) }}>OK</button>
               </>}
               {s.showSettings && !s.confirmReset && !s.showTips && <>
