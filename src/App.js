@@ -1110,40 +1110,50 @@ class App extends React.Component {
       });
     }
     segments.push(...innerAnchors);
-    for (let i = 0; i < state.builder.dest; i++) {
-      let curA = innerAnchors[i];
-      let nextA = innerAnchors[(i + 1) % state.builder.dest];
-      let tempSeg = {
+    if (state.builder.pressure >= 1) {
+      segments.push({
+        type: 'arc',
         center: [0, 0],
-        radius: innerRadius,
-      }
-      let sect0 = intersectCircles(tempSeg, curA, 'cw');
-      let sect1 = intersectCircles(tempSeg, nextA, 'ccw');
-      let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
-      let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
-      if (norm0 < norm1) {
-        segments.push({
-          type: 'arc',
+        radius: innerRadius + innerAnchorRadius,
+        start: 0,
+        end: 1,
+      });
+    } else {
+      for (let i = 0; i < state.builder.dest; i++) {
+        let curA = innerAnchors[i];
+        let nextA = innerAnchors[(i + 1) % state.builder.dest];
+        let tempSeg = {
           center: [0, 0],
           radius: innerRadius,
-          start: norm0,
-          end: norm1,
-        })
-      } else {
-        segments.push({
-          type: 'arc',
-          center: [0, 0],
-          radius: innerRadius,
-          start: norm0,
-          end: 1,
-        })
-        segments.push({
-          type: 'arc',
-          center: [0, 0],
-          radius: innerRadius,
-          start: 0,
-          end: norm1,
-        })
+        }
+        let sect0 = intersectCircles(tempSeg, curA, 'cw');
+        let sect1 = intersectCircles(tempSeg, nextA, 'ccw');
+        let norm0 = radiansToNormalized(Math.atan2(sect0[1], sect0[0]));
+        let norm1 = radiansToNormalized(Math.atan2(sect1[1], sect1[0]));
+        if (norm0 < norm1) {
+          segments.push({
+            type: 'arc',
+            center: [0, 0],
+            radius: innerRadius,
+            start: norm0,
+            end: norm1,
+          })
+        } else {
+          segments.push({
+            type: 'arc',
+            center: [0, 0],
+            radius: innerRadius,
+            start: norm0,
+            end: 1,
+          })
+          segments.push({
+            type: 'arc',
+            center: [0, 0],
+            radius: innerRadius,
+            start: 0,
+            end: norm1,
+          })
+        }
       }
     }
     if (state.builder.pressure >= 1 && state.builder.dest != 0) {
@@ -1437,7 +1447,7 @@ class App extends React.Component {
     if (!s.curResearch || (s.curResearch.ideaCost && s.res.ideas.amount < s.curResearch.ideaCost)) {
       return;
     }
-    let  type = s.curResearch.type
+    let type = s.curResearch.type
     let res = PROG[type][s.prog[type]]
     if (res.unlockSlider) {
       s.sliderUnlocks[res.unlockSlider[0]] = res.unlockSlider[1];
@@ -1655,7 +1665,7 @@ class App extends React.Component {
       }
       this.prevX = this.mouseX;
       this.prevY = this.mouseY;
-      return {  };
+      return {};
 
     }, callback);
 
@@ -1709,7 +1719,7 @@ class App extends React.Component {
     let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
     if (resource.name !== 'ideas' && resource.amount > .5) {
-      let exp = [6,5,4,3,2][pressure];
+      let exp = [6, 5, 4, 3, 2][pressure];
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
@@ -1726,7 +1736,7 @@ class App extends React.Component {
       efficiency *= 0.5 ** (destLevel - sourceLevel)
     }
     if (source.name !== 'magic') {
-      efficiency *= Math.log10(.8*s.drawnDestTotals[resource.name] + 12)/Math.log10(2.4)-1.8383
+      efficiency *= Math.log10(.8 * s.drawnDestTotals[resource.name] + 12) / Math.log10(2.4) - 1.8383
       efficiency *= Object.keys(s.drawnCircles[resource.name]).length ** 0.65 * 0.3 + 1
     }
     return [sourceMul * amount * destMul, destMul * amount * efficiency]
@@ -1865,7 +1875,7 @@ class App extends React.Component {
     this.resizeCanvas();
     this.renderID = window.requestAnimationFrame(this.gameLoop);
     if (this.state.paused) {
-      setTimeout(() => {this.forceUpdate()}, 0)
+      setTimeout(() => { this.forceUpdate() }, 0)
     }
   }
 
