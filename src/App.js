@@ -539,7 +539,7 @@ class App extends React.Component {
     this.completedCanvases[circle.index] = React.createRef();
     this.undrawnCompleted.set(circle.index, circle);
     state.tmCircle = null;
-
+    this.drawCanvas(this.canvas, state.tmCircle, this.transform, true)
     return state;
   }
 
@@ -798,7 +798,7 @@ class App extends React.Component {
                   Cost: </div>
                 <div style={{ flexGrow: 1, width: '100%' }}>
                   {Object.entries(s.buildCost).filter(([name, cost]) => cost > 0).
-                    map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap} shiny={s.res[name].amount >= cost}></Resource></div>
+                    map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap}></Resource></div>
                     )}
                 </div>
 
@@ -1648,7 +1648,7 @@ class App extends React.Component {
       }
       this.prevX = this.mouseX;
       this.prevY = this.mouseY;
-      return { tmCircle: s.tmCircle };
+      return {  };
 
     }, callback);
 
