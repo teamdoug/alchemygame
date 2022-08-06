@@ -479,7 +479,6 @@ class App extends React.Component {
         return result
       }, {}),
       startedDrawing: false,
-      selectToDelete: false,
       madewater: false,
       madeplants: false,
       madeanimals: false,
@@ -781,7 +780,7 @@ class App extends React.Component {
                     onMouseLeave={() => { this.completedMouseLeave(c) }}
                     ref={this.completedCanvases[c.index]} key={c.index}
                     className={"completedCircle " + (s.selectedCirclesDelete[c.index] ? 'destroySelect' : '')}
-                    onClick={s.selectToDelete ? (
+                    onClick={s.showSelector ? (
                       () => this.setState({
                         selectedCirclesDelete: { ...s.selectedCirclesDelete, [c.index]: !s.selectedCirclesDelete[c.index] }
                       })) : () => { }}
@@ -883,12 +882,11 @@ class App extends React.Component {
             }
             {s.showSelector && <div id="selectorPanel">
               <div style={{ display: 'flex', margin: '5px', }}>
-                <div onClick={(e) => { this.setState({ showSelector: false }); e.preventDefault() }}>&lt;&nbsp;Destructor</div>
+                <div onClick={(e) => { this.setState({ showSelector: false, selectedCirclesDelete: {}, }); e.preventDefault() }}>&lt;&nbsp;Destructor</div>
               </div>
-              {/* TODO !selectToDelete && <span>Select a circle to see more info</span>*/}
-              {!s.selectToDelete && <button onClick={(e) => { this.setState({ selectToDelete: true, selectedCirclesDelete: {}, }); e.preventDefault() }}>Destroy Circles</button>}
-              {s.selectToDelete && <button onClick={(e) => { this.triggerDestruction(); e.preventDefault() }}>Destroy Selected Circles</button>}
-              {s.selectToDelete && <button onClick={(e) => { this.setState({ selectToDelete: false, selectedCirclesDelete: {}, }); e.preventDefault() }}>Cancel Destruction</button>}
+              <p>Select the circles you would like to destroy.</p>
+              <button onClick={(e) => { this.triggerDestruction(); e.preventDefault() }}>Destroy Selected Circles</button>
+              <button onClick={(e) => { this.setState({ showSelector: false, selectedCirclesDelete: {}, }); e.preventDefault() }}>Cancel Destruction</button>
 
             </div>
             }
@@ -925,7 +923,7 @@ class App extends React.Component {
       delete this.completedCanvases[index];
     })
     s.selectedCirclesDelete = {}
-    s.selectToDelete = false;
+    s.showSelector = false;
   }
 
   createPreview = () => {
@@ -1635,7 +1633,7 @@ class App extends React.Component {
           }
         }
         if (!drewSegment) {
-          let drawnBonus = (s.drawnTotal + 1) ** .4
+          let drawnBonus = (.1 * s.drawnTotal + 1) ** 2 + 1;
 
           let deltaSize = relDelta * s.drawSpeed / seg.len * drawFactor * drawnBonus;
           newSegs.push([progs[0][1], clamp(progs[0][1] + deltaSize)]);

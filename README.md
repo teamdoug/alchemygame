@@ -13,8 +13,6 @@
 * tell user making more and more different things powers up that thing
 * remove cost or indicate already-made ones
 * tell user efficiency affected by distance
-* When opnening destructor, say selected circles will be deleted, and don't require first button press
-* close destructor after destruction
 * need to nerf cost of max dog circle
 ### Mobile
 * View info about circles for mobile
