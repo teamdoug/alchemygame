@@ -141,7 +141,7 @@ const story = [
   'If we change our outer circle some, I think we can make our transmutations more ' +
   'efficient. The circles will cost more, but they\'ll generate more for the same input.', { completeResearch: true, confirm: 'Hm, tradeoffs' }],
 
-  [{efficiency: 1}, {},
+  [{ efficiency: 1 }, {},
   'As we make more circles, our previous circles become more powerful. ' +
   'Each circle we create powers up circles that make the same thing, especially if it\'s a new circle.', { confirm: 'More powerful circles are great!' }],
 
@@ -152,7 +152,7 @@ const story = [
   'and for pooping in. Maybe not at the same time...', { confirm: 'Please not at the same time' }],
 
   [{ dest: 2 }, { curResearch: 'dest', researchConfirmed: true },
-  'Earth won\'t make plants very efficiently. Water would be better, but plants themselves are best.', { confirm: 'Got it'}],
+    'Earth won\'t make plants very efficiently. Water would be better, but plants themselves are best.', { confirm: 'Got it' }],
 
   [{ dest: 2, efficiency: 0 }, { curResearch: 'dest', researchConfirmed: true }, 'Time to research some efficiency, but we should also make some ' +
     'plants while we\'re at it.', { confirm: 'Let\'s do it', completeResearch: true }],
@@ -813,13 +813,13 @@ class App extends React.Component {
                 <div onClick={(e) => { this.setState({ showBuilder: false }); e.preventDefault() }}>&lt;&nbsp;Builder</div>
                 <div id="builderCost">
                   Cost: </div>
-                {s.buildCost !== null ? 
-                <div style={{ flexGrow: 1, width: '100%' }}>
-                  {Object.entries(s.buildCost).filter(([name, cost]) => cost > 0).
-                    map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap}></Resource></div>
-                    )}
-                </div>
-                : "Free to make again"}
+                {s.buildCost !== null ?
+                  <div style={{ flexGrow: 1, width: '100%' }}>
+                    {Object.entries(s.buildCost).filter(([name, cost]) => cost > 0).
+                      map(([name, cost]) => <div key={name} style={{ width: '100%' }}><Resource name={name} percent={100 * cost / s.res[name].cap}></Resource></div>
+                      )}
+                  </div>
+                  : "Free to make again"}
 
               </div>
               <div id="builder">
@@ -880,9 +880,9 @@ class App extends React.Component {
                   ></canvas>
                 </div>
                 <div>
-                {(s.tmCircle !== null && !s.tmCircle.done) ? 'Can\'t start a new circle until finishing or aborting the current one.' :
-                 (s.completedCircles.length >= maxCircles ? 'Circle limit reached. Use Destructor to destroy less useful circles.' :
-                 (!this.haveCost() ? 'Can\'t afford circle. Check cost above.' :''))}
+                  {(s.tmCircle !== null && !s.tmCircle.done) ? 'Can\'t start a new circle until finishing or aborting the current one.' :
+                    (s.completedCircles.length >= maxCircles ? 'Circle limit reached. Use Destructor to destroy less useful circles.' :
+                      (!this.haveCost() ? 'Can\'t afford circle. Check cost above.' : ''))}
                 </div>
                 <div style={{ display: 'flex' }}>
                   <div style={{ 'textAlign': 'left', 'flexGrow': 1 }}>
@@ -1088,7 +1088,7 @@ class App extends React.Component {
     }
     if (state.builder.efficiency >= 4) {
       for (let i = 0; i < state.builder.source; i++) {
-        let topCenter = [outerAnchors[i].center[0], outerAnchors[i].center[1]+outerAnchorRadius/4]
+        let topCenter = [outerAnchors[i].center[0], outerAnchors[i].center[1] + outerAnchorRadius / 4]
         segments.push({
           type: 'arc',
           center: topCenter,
@@ -1105,7 +1105,7 @@ class App extends React.Component {
           start,
           end,
           len,
-          lenSq: len*len,
+          lenSq: len * len,
         })
       }
     }
@@ -1238,15 +1238,15 @@ class App extends React.Component {
           start: .65,
           end: 1,
         });
-        let start = [innerAnchors[i].center[0], innerAnchors[i].center[1] + 3*innerAnchorRadius/5];
-        let end = [start[0], start[1] - 2*innerAnchorRadius/3];
-        let len = 2*innerAnchorRadius /3;
+        let start = [innerAnchors[i].center[0], innerAnchors[i].center[1] + 3 * innerAnchorRadius / 5];
+        let end = [start[0], start[1] - 2 * innerAnchorRadius / 3];
+        let len = 2 * innerAnchorRadius / 3;
         segments.push({
           type: 'line',
           start,
           end,
           len,
-          lenSq: len*len,
+          lenSq: len * len,
         })
       }
     }
@@ -1326,13 +1326,14 @@ class App extends React.Component {
     }
     ctx.setTransform(transform);
     ctx.lineCap = "round";
-    tmCircle.segments.forEach((seg, segIndex) => {
-      let donePaths = [];
-      let planPaths = [];
+    let planPaths = [];
 
-      let insideDonePaths = [];
-      let outsideDonePaths = [];
-  
+    let insideDonePaths = [];
+    let outsideDonePaths = [];
+    tmCircle.segments.forEach((seg, segIndex) => {
+      let donePaths;
+
+
       if (segIndex < tmCircle.insideStart) {
         donePaths = outsideDonePaths;
       } else {
@@ -1344,7 +1345,7 @@ class App extends React.Component {
           if (!seg.done && forceRedraw) {
             let planPath = new Path2D();
             planPath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(seg.start), normalizedToRadians(seg.end), true);
-            planPaths.push(planPath);
+            planPaths.push([planPath, seg.lineWidth]);
           }
           for (const [s, e] of seg.progress) {
             if (s === e) {
@@ -1360,14 +1361,14 @@ class App extends React.Component {
               normEnd -= .001;
             }
             donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
-            donePaths.push(donePath);
+            donePaths.push([donePath, seg.lineWidth]);
           }
         } else if (seg.type === 'line') {
           if (!seg.done) {
             let planPath = new Path2D();
             planPath.moveTo(seg.start[0], seg.start[1]);
             planPath.lineTo(seg.end[0], seg.end[1]);
-            planPaths.push(planPath);
+            planPaths.push([planPath, seg.lineWidth]);
           }
           for (const [s, e] of seg.progress) {
             if (s === e) {
@@ -1380,12 +1381,8 @@ class App extends React.Component {
             let arcEnd = [diffX * e + seg.start[0], diffY * e + seg.start[1]];
             donePath.moveTo(arcStart[0], arcStart[1]);
             donePath.lineTo(arcEnd[0], arcEnd[1]);
-            donePaths.push(donePath);
+            donePaths.push([donePath, seg.lineWidth]);
           }
-        }
-        ctx.strokeStyle = progressColor;
-        for (const planPath of planPaths) {
-          ctx.stroke(planPath);
         }
       } else {
         if (seg.type === 'arc') {
@@ -1400,7 +1397,7 @@ class App extends React.Component {
               normEnd -= .001;
             }
             donePath.arc(seg.center[0], seg.center[1], seg.radius, normalizedToRadians(arcStart), normEnd, true);
-            donePaths.push(donePath);
+            donePaths.push([donePath, seg.lineWidth]);
           });
         } else if (seg.type === 'line') {
           this.newSegments[segIndex].forEach(([s, e]) => {
@@ -1411,21 +1408,30 @@ class App extends React.Component {
             let arcEnd = [diffX * e + seg.start[0], diffY * e + seg.start[1]];
             donePath.moveTo(arcStart[0], arcStart[1]);
             donePath.lineTo(arcEnd[0], arcEnd[1]);
-            donePaths.push(donePath);
+            donePaths.push([donePath, seg.lineWidth]);
           });
         }
       }
-      ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.source]].color;
-      for (const donePath of outsideDonePaths) {
-        ctx.stroke(donePath);
-      }
-        
-      ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.dest]].color;
-      for (const donePath of insideDonePaths) {
-        ctx.stroke(donePath);
-      }
+
+
 
     });
+    ctx.strokeStyle = progressColor;
+    for (const [planPath, width] of planPaths) {
+      ctx.lineWidth = this.baseLineWidth * width * lineScale;
+      ctx.stroke(planPath);
+    }
+    ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.source]].color;
+    for (const [donePath, width] of outsideDonePaths) {
+      ctx.lineWidth = this.baseLineWidth * width * lineScale;
+      ctx.stroke(donePath);
+    }
+
+    ctx.strokeStyle = ctx.strokeStyle = resources[resMap[tmCircle.params.heavenly][tmCircle.params.dest]].color;
+    for (const [donePath, width] of insideDonePaths) {
+      ctx.lineWidth = this.baseLineWidth * width * lineScale;
+      ctx.stroke(donePath);
+    }
   }
 
   checkProg = (s) => {
