@@ -4,9 +4,10 @@ import { ReactComponent as Lily } from './lily_crop.svg';
 import { ReactComponent as Pause } from './pause.svg';
 import { ReactComponent as Play } from './play.svg';
 import { ReactComponent as Gear } from './gear.svg';
+import { toHaveFormValues } from '@testing-library/jest-dom/dist/matchers';
 
 
-const gameDebug = false;
+const gameDebug = true;
 const debug = false;
 const forceReset = false;
 const maxWidth = 4000;
@@ -310,7 +311,7 @@ const PROG = {
     name: 'Faster!',
     unlockSlider: ['efficiency', 1],
   }, {
-    ideaCost: 120,
+    ideaCost: 1200,
     triggerResource: 'plants',
     unlockSlider: ['efficiency', 2],
   }, {
@@ -325,11 +326,11 @@ const PROG = {
     triggerResource: 'end',
   }],
   'pressure': [{
-    ideaCost: 200,
+    ideaCost: 800,
     triggerResource: 'plants',
     unlockSlider: ['pressure', 1],
   }, {
-    ideaCost: 600,
+    ideaCost: 2600,
     triggerResource: 'animals',
     unlockSlider: ['pressure', 2],
     reqResearch: ['efficiency', 2],
@@ -432,10 +433,11 @@ class App extends React.Component {
   }
 
   resetLocalVars = () => {
-    this.prevX = 0;
-    this.prevY = 0;
-    this.mouseX = 0;
-    this.mouseY = 0;
+    this.prevX = null;
+    this.prevY = null;
+    this.mouseX = null;
+    this.touched = false;
+    this.mouseY = null;
     this.mouseClicked = false;
     this.completedCanvases = {};
     this.undrawnCompleted = new Map();
@@ -1688,7 +1690,7 @@ class App extends React.Component {
           let onSegSlop = onArcSlop / seg.radius;
 
 
-          if (this.mouseClicked && circleContains(seg.radius, relX, relY)) {
+          if (this.mosueX !== null && this.mouseClicked && circleContains(seg.radius, relX, relY)) {
             let curRadians = Math.atan2(relY, relX);
             let curNormalized = radiansToNormalized(curRadians);
             let [curNormStart, curNormEnd] = normAndOrder(circle, curNormalized - onSegSlop,
@@ -1705,7 +1707,7 @@ class App extends React.Component {
               let prevNormalized = radiansToNormalized(Math.atan2(prevRelY, prevRelX));
               let [prevNormStart, prevNormEnd] = normAndOrder(circle, prevNormalized - onSegSlop,
                 prevNormalized + onSegSlop);
-              if (circleContains(seg.radius, prevRelX, prevRelY) && ((
+              if (this.prevX !== null && circleContains(seg.radius, prevRelX, prevRelY) && ((
                 seg.end >= prevNormEnd && prevNormEnd >= seg.start) ||
                 (seg.start <= prevNormStart && prevNormStart <= seg.end))) {
                 prevNormEnd = Math.min(seg.end, prevNormEnd);
@@ -1742,11 +1744,11 @@ class App extends React.Component {
 
         } else if (seg.type === 'line') {
           let onSegSlop = onLineSlop / seg.len;
-          if (this.mouseClicked) {
+          if (this.mouseClicked && this.mouseX !== null) {
             let [relPos, distSq] = lineRelPosDistSq(this.mouseX, this.mouseY, seg);
             if (relPos >= -onSegSlop && relPos <= 1 + onSegSlop && distSq < lineDistFudge) {
               let [prevRelPos, prevDistSq] = lineRelPosDistSq(this.prevX, this.prevY, seg);
-              if (prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < lineDistFudge) {
+              if (this.prevX !== null && prevRelPos >= -onSegSlop && prevRelPos <= 1 + onSegSlop && prevDistSq < lineDistFudge) {
                 let startPos = clamp(Math.min(relPos, prevRelPos) - onSegSlop);
                 let endPos = clamp(Math.max(relPos, prevRelPos) + onSegSlop);
                 addArc(progs, [startPos, endPos]);
@@ -1899,7 +1901,9 @@ class App extends React.Component {
   }
 
   mouseMove = (e) => {
-
+    if (this.touched) {
+      return;
+    }
     if (!this.canvas.current) {
       return;
     }
@@ -1929,9 +1933,16 @@ class App extends React.Component {
     if (!this.canvas.current) {
       return;
     }
+    e.preventDefault();
+    this.touched = true
     // TODO fix for touch/multitouch (hm)
     if (e.type === "touchcancel" || e.type === "touchend") {
       this.mouseClicked = false;
+      this.touched = false;
+      this.mouseX = null;
+      this.mouseY = null;
+      this.prevX = null;
+      this.prevY = null;
       return;
     }
     if (e.touches.length > 0) {
@@ -1948,6 +1959,7 @@ class App extends React.Component {
     } else {
       this.mouseClicked = false;
     }
+   
   };
 
   resizeCanvas = () => {
