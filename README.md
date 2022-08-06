@@ -1,19 +1,14 @@
 # IGJ5 Alchemy Game - Dog World (working title)
 
 ## TODO
-* Why does having more circles make existing circles brighter?
 * Animate circle creation
 * Animate and fix builder button
 * Dog gives hints and says useless things (haha)
-* better glyphs at max pressure/efficiency
-* drawing harder for higher pressure/efficiency (glyphs more precise??)
 * flash to indicate unlocks
 * test colorblind (names on costs?)
-* Notify why circle can't be drawn
 * tell user making more and more different things powers up that thing
 * remove cost or indicate already-made ones
 * tell user efficiency affected by distance
-* need to nerf cost of max dog circle
 ### Mobile
 * View info about circles for mobile
 * Drawing less finicky. Have bigger slop range for segments already drawing?
