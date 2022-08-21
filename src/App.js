@@ -1590,8 +1590,12 @@ class App extends React.Component {
   }
 
   getCircleKey = (params) => {
+    let pressure = params.pressure;
+    if (params.dest === 0) {
+      pressure = 0;
+    }
     return (params.source + "_" + params.dest + "_" +
-      params.efficiency + "_" + params.pressure)
+      params.efficiency + "_" + pressure)
   }
 
   completeFakeResearch = (s, type) => {
