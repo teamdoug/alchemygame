@@ -93,9 +93,12 @@ const story = [
 
   [{ dest: 0 }, { drawnTotal: 1 }, 'That\'s a nice circle. It\'s starting to give me some inspiration already. ' +
     'Once my Inspiration Hat fills up, I\'ll have a great idea, and you can ask me to share it.', { confirm: 'I can\'t wait!', state: { unlockedSelector: true } }],
-
+  
   [{}, { unlockedSelector: true }, 'If you ever decide you don\'t like a circle, you can delete it with the Destructor',
   { confirm: 'Yikes, I\'ll keep that in mind' }],
+
+  [{ dest: 0 }, { drawnTotal: 1, everTouched: false }, 'By the way, you don\'t have to click on the circle to draw. ' +
+    'Also, if drawing is a challenge, there\'s a setting to leave it all to me.', { noConfirm: true }],
 
   [{}, { drawnTotal: 12, unlockedSelector: true }, 'By the way, we can\'t have more than a dozen circles without destabilizing ' +
     'the world. You can use the Destructor to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
@@ -275,20 +278,20 @@ const PROG = {
     unlockSlider: ['dest', 1],
     confirm: 'So what\'s your great idea?',
   }, {
-    ideaCost: 6,
+    ideaCost: 4,
     unlockSlider: ['dest', 2],
     confirm: 'What\'s next?',
   }, {
-    ideaCost: 120,
+    ideaCost: 80,
     triggerResource: 'water',
     unlockSlider: ['dest', 3],
     name: 'New things!',
   }, {
-    ideaCost: 1500,
+    ideaCost: 1000,
     triggerResource: 'plants',
     unlockSlider: ['dest', 4],
   }, {
-    ideaCost: 5400,
+    ideaCost: 4400,
     triggerResource: 'animals',
     unlockSlider: ['dest', 5],
     reqResearch: ['efficiency', 2],
@@ -311,20 +314,20 @@ const PROG = {
     triggerResource: 'end',
   }],
   'efficiency': [{
-    ideaCost: 60,
+    ideaCost: 50,
     triggerResource: 'water',
     name: 'Faster!',
     unlockSlider: ['efficiency', 1],
   }, {
-    ideaCost: 1200,
+    ideaCost: 800,
     triggerResource: 'plants',
     unlockSlider: ['efficiency', 2],
   }, {
-    ideaCost: 2200,
+    ideaCost: 2000,
     triggerResource: 'animals',
     unlockSlider: ['efficiency', 3],
   }, {
-    ideaCost: 12600,
+    ideaCost: 10600,
     triggerResource: 'dogs',
     unlockSlider: ['efficiency', 4],
   }, {
@@ -335,17 +338,17 @@ const PROG = {
     triggerResource: 'plants',
     unlockSlider: ['pressure', 1],
   }, {
-    ideaCost: 2600,
+    ideaCost: 2200,
     triggerResource: 'animals',
     unlockSlider: ['pressure', 2],
     reqResearch: ['efficiency', 2],
   }, {
-    ideaCost: 12500,
+    ideaCost: 10500,
     triggerResource: 'dogs',
     unlockSlider: ['pressure', 3],
     reqResearch: ['efficiency', 3],
   }, {
-    ideaCost: 35800,
+    ideaCost: 28800,
     unlockSlider: ['pressure', 4],
     reqResearch: ['efficiency', 4],
   }, {
@@ -469,6 +472,7 @@ class App extends React.Component {
     let state = {
       paused: false,
       previewCircle: null,
+      dogPower: false,
       builder: {
         heavenly: 0,
         source: 1,
@@ -489,6 +493,7 @@ class App extends React.Component {
       doneNotified: false,
       doneConfirmed: false,
       modalConfirm: null,
+      everTouched: false,
       prog: {
         'dest': 0,
         'source': 0,
@@ -712,8 +717,12 @@ class App extends React.Component {
               {s.showSettings && !s.confirmReset && !s.showTips && <>
                 <p className="thin">Welcome to Doggy Dog World</p>
                 {<p><button onClick={() => { this.setState({ showTips: true }) }}>Tips</button></p>}
+                <p>{s.dogPower ? 'Dog is drawing faster.' :
+                'If drawing is a challenge for you, you can help Dog draw faster.'}</p>
+                <p><button onClick={() => { this.setState(state => {return {dogPower: !state.dogPower}}) }}>{s.dogPower ? 'I want to draw more': 'Dog draw fast'}</button></p>
                 <p><button onClick={() => { this.setState({ confirmReset: true }) }}>Reset</button></p>
-                <button onClick={() => { this.setState({ showSettings: false }) }}>OK</button>
+
+                <button onClick={() => { this.setState({ showSettings: false }) }}>Back</button>
               </>}
               {s.confirmReset && <p>Completely reset the game and start over?</p>}
               {s.confirmCancelDraw && <p>Abort your current circle to make a different circle?</p>}
@@ -1795,7 +1804,7 @@ class App extends React.Component {
         if (!drewSegment) {
           let drawnBonus = (.1 * s.drawnTotal + 1) ** 2 + 1;
 
-          let deltaSize = relDelta * s.drawSpeed / seg.len * drawFactor * drawnBonus;
+          let deltaSize = (s.dogPower ? 10 : 1) * relDelta * s.drawSpeed / seg.len * drawFactor * drawnBonus;
           newSegs.push([progs[0][1], clamp(progs[0][1] + deltaSize)]);
           progs[0][1] += deltaSize;
           mergeArcs(progs, 0);
@@ -1877,7 +1886,7 @@ class App extends React.Component {
     let destMul = 1
     // (2-2x)^(1/3, 1/2, 1, 2, 3)
     if (resource.name !== 'ideas' && resource.amount > .5) {
-      let exp = [8, 6, 4, 3, 2.1][pressure];
+      let exp = [8, 6, 4, 3, 2.05][pressure];
       destMul = (2 - 2 * resource.amount) ** exp
     }
     let sourceMul = 1
@@ -1966,6 +1975,7 @@ class App extends React.Component {
     }
     e.preventDefault();
     this.touched = true
+    this.state.everTouched = true;
     // TODO fix for touch/multitouch (hm)
     if (e.type === "touchcancel" || e.type === "touchend") {
       this.mouseClicked = false;
