@@ -98,7 +98,7 @@ const story = [
   { confirm: 'Yikes, I\'ll keep that in mind' }],
 
   [{ dest: 0 }, { drawnTotal: 1, everTouched: false }, 'By the way, you don\'t have to click on the circle to draw. ' +
-    'Also, if drawing is a challenge, there\'s a setting to leave it all to me.', { noConfirm: true }],
+    'Also, if drawing is a challenge, there\'s a setting to melp me draw faster.', { noConfirm: true }],
 
   [{}, { drawnTotal: 12, unlockedSelector: true }, 'By the way, we can\'t have more than a dozen circles without destabilizing ' +
     'the world. You can use the Destructor to delete some existing ones to make more better circles.', { confirm: 'Oof, seems worth it.' }],
