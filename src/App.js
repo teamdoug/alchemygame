@@ -895,7 +895,7 @@ class App extends React.Component {
                   Heavenly
                   </div>*/}
                 {s.sliderUnlocks.source >= 0 && <div style={{ display: 'flex', marginBottom: '5px' }}>
-                  <div style={{ flexGrow: 1 }}><p className="thin">Consume</p>
+                  <div style={{ flexGrow: 1 }}><p className="thin">Reagent</p>
                     <div style={{}}>{title(sourceRes(this.state.builder))}</div>
                   </div>
                   <div>{<input type="range" min="1" max={this.state.sliderUnlocks.source} value={this.state.builder.source}
